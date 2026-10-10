@@ -1,0 +1,52 @@
+{
+  "broadcast": "contracts/broadcast/Deploy.s.sol/10143/run-latest.json",
+  "buildInfo": "contracts/deployments/build-info-testnet-20261009",
+  "chainId": 10143,
+  "deployBlock": 69570451,
+  "game": "0xe1341560B697EC40c9fa2e1e6EF270bF6b59fE39",
+  "gameImpl": "0x87381edaB38eE1A7B22E6D952d11E03Fa666724B",
+  "params": {
+    "dailyLossLimit": "1000000000000",
+    "gapMs": 250,
+    "grant": "100000000",
+    "lockMarginMs": 1000,
+    "maxColLiab": "20000000000",
+    "maxHexLiab": "4000000000",
+    "maxMarketLiab": "100000000000",
+    "maxMoveE8": "25000000",
+    "maxOpen": 32,
+    "maxPayout": "2500000000",
+    "maxStake": "50000000",
+    "minStake": "100000",
+    "quoteMaxAgeMs": 1500,
+    "voidAfterMs": 120000
+  },
+  "roles": {
+    "admin": "0x80A13649181682Ded1b080822f30c2A7B977BD53",
+    "guardian": "0x815D4107D06550fA4dED308c64840e7Ad89DF151",
+    "keeper": "0x6628466DA25dc84516c52a79F3089aCEE4051220",
+    "quoter": "0x78774441a9514F68e042be1fe7AB53cBf380C3bd",
+    "recorder": "0x204E9C68b9E6da4A0506886892Dd36A0da08738D",
+    "relayer": "0x20df2Af4E74DC889eC6cEAcb089faD8B5a1d36A6"
+  },
+  "rpc": {
+    "http": "https://testnet-rpc.monad.xyz",
+    "ws": "wss://testnet-rpc.monad.xyz"
+  },
+  "usdc": "0x674aD889D8870B5d69dc7d47da8f4e26a3fE3119",
+  "usdcImpl": "0x15Ad542bFAA6A79f470BfA691Ce4d9f00b2b96A5",
+  "markets": {
+    "1": {
+      "enabled": true,
+      "maxLiab": "50000000000",
+      "maxMoveE8": "12500000000",
+      "rowE8": "500000000"
+    },
+    "3": {
+      "enabled": true,
+      "maxLiab": "50000000000",
+      "maxMoveE8": "15000",
+      "rowE8": "1000"
+    }
+  }
+}

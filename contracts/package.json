@@ -1,0 +1,17 @@
+{
+  "name": "@hexit/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hexit Monad contracts (Foundry). Solidity deps via npm; no git submodules.",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "validate": "forge build --force && openzeppelin-upgrades-core validate out/build-info --contract src/HexitGame.sol:HexitGame --reference build-info-testnet-20261010:src/HexitGame.sol:HexitGame --referenceBuildInfoDirs deployments/build-info-testnet-20261010 --requireReference && openzeppelin-upgrades-core validate out/build-info --contract src/TestUSDC.sol:TestUSDC --reference build-info-testnet-20261009:src/TestUSDC.sol:TestUSDC --referenceBuildInfoDirs deployments/build-info-testnet-20261009 --requireReference"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "5.7.0",
+    "@openzeppelin/contracts-upgradeable": "5.7.0",
+    "@openzeppelin/upgrades-core": "1.46.0",
+    "forge-std": "https://github.com/foundry-rs/forge-std/archive/refs/tags/v1.17.0.tar.gz"
+  }
+}

@@ -1,0 +1,19 @@
+.DS_Store
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.pem
+.vercel/
+keys/
+
+# build output
+app/dist/
+
+# foundry build output
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+contracts/deployments/build-info-*/

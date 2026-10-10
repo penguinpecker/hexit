@@ -1,0 +1,74 @@
+<header class="page-head">
+  <div class="wrap">
+    <h1 class="h1">Questions, <span class="blue">answered.</span></h1>
+    <p class="lead">The short version: it's a testnet game, the money is test money, and Hexit pays every network fee.</p>
+  </div>
+</header>
+
+<section class="sec sec-tight">
+  <div class="wrap faq">
+    <h2 class="faq-group micro">Money</h2>
+    <details>
+      <summary>Is this real money?</summary>
+      <p>No. Hexit runs on the Monad testnet only. Test USDC (tUSDC) and test MON have no monetary value: they can't be bought, sold, cashed out or exchanged for anything of value, and nothing you win in Hexit is worth real money.</p>
+    </details>
+    <details>
+      <summary>How do I get test USDC?</summary>
+      <p>Sign up and a one-time grant credits {{grant}} of test USDC to your balance. The grant is a transaction on Monad testnet, and it pops up with its link like every other one.</p>
+    </details>
+    <details>
+      <summary>Do I need MON to pay for gas?</summary>
+      <p>No. Your wallet signs each tap on your device and Hexit's relayer sends it to the chain and pays the gas. That covers bets, withdrawals and deposits; settlements are sent by Hexit's keeper.</p>
+    </details>
+    <details>
+      <summary>How do I withdraw?</summary>
+      <p>Open your profile (tap your balance), choose <strong>Withdraw</strong>, enter an amount and confirm. The contract sends that much test USDC from your balance to your wallet's own address on Monad testnet. To play with it again, use <strong>Add funds</strong> and pick <strong>From your wallet</strong>. You can also send tUSDC to your address from any other Monad testnet wallet.</p>
+    </details>
+
+    <h2 class="faq-group micro">Your wallet</h2>
+    <details>
+      <summary>Where is my wallet stored?</summary>
+      <p>Hexit creates a test wallet in your browser. Its private key is kept only in this browser's storage on this device and is never sent to Hexit.</p>
+    </details>
+    <details>
+      <summary>What if I clear my browser or switch device?</summary>
+      <p>A private window, clearing site data, or another browser or device starts a new wallet, and the old one can't be recovered by us. Withdraw first if you want to keep a balance somewhere you control.</p>
+    </details>
+    <details>
+      <summary>Do I need a wallet extension?</summary>
+      <p>No. There is nothing to install and no popup per tap. Sign in, and the built-in wallet does the signing.</p>
+    </details>
+
+    <h2 class="faq-group micro">Playing</h2>
+    <details>
+      <summary>Why is every tap a transaction?</summary>
+      <p>So that every bet is booked by the HexitGame contract where anyone can check it. Each tap, settlement, grant, deposit and withdrawal shows a card on the right of the screen with a link to the transaction on MonadVision.</p>
+    </details>
+    <details>
+      <summary>Can I cancel a bet?</summary>
+      <p>No. Once a hex is armed the bet is on chain and runs until its column settles.</p>
+    </details>
+    <details>
+      <summary>Why was my tap refused?</summary>
+      <p>The usual reasons: the price moved since the multiplier was quoted, the hex crossed the lock line before the bet landed, a stake or payout limit was reached, or the balance was too low. The app says which, and a refused tap never takes your stake.</p>
+    </details>
+    <details>
+      <summary>What happens if the price feed drops?</summary>
+      <p>If the feed has a gap longer than {{gapMs}} ms in a column, hexes in that column the price had not touched are refunded. If no signed tape reaches the chain within {{voidAfterS}} seconds of a window, every open bet on it is refunded. Missing data is never a win for the house.</p>
+    </details>
+    <details>
+      <summary>Is it fair?</summary>
+      <p>The price tape and the multipliers are both signed, and the contract checks the signatures and works out the hits itself, on the same hexagons and straight lines the board draws. <a href="/how-it-works#fairness">How it works</a> has the details.</p>
+    </details>
+    <details>
+      <summary>What does the leaderboard count?</summary>
+      <p>Daily and weekly rank the profit and loss of bets settled in the last 24 hours or 7 days. All time counts everything a wallet holds in test USDC, its balance and its open stakes, minus the {{grant}} grant.</p>
+    </details>
+    <details>
+      <summary>Does it work on my phone?</summary>
+      <p>Yes. Hexit is a web app: play it in the browser, or install it from the browser menu (on iPhone, Share then Add to Home Screen). On a desktop it fills the screen at full resolution, up to 4K.</p>
+    </details>
+
+    <p class="doc-cta"><a class="btn btn-primary" href="/play">Play now</a><a class="more" href="/how-it-works">Read the full rules</a></p>
+  </div>
+</section>

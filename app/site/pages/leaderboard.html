@@ -1,0 +1,22 @@
+<header class="page-head">
+  <div class="wrap">
+    <h1 class="h1">Leader<span class="pink">board.</span></h1>
+    <p class="lead">Every funded wallet, ranked by profit and loss in test USDC. Read live from Monad testnet and the Hexit indexer.</p>
+  </div>
+</header>
+
+<section class="sec sec-tight">
+  <div class="wrap lb-page">
+    <div class="tabs" role="tablist" aria-label="Period">
+      <button type="button" role="tab" aria-selected="true" data-period="daily">Daily</button>
+      <button type="button" role="tab" aria-selected="false" data-period="weekly">Weekly</button>
+      <button type="button" role="tab" aria-selected="false" data-period="all">All time</button>
+    </div>
+    <p class="lb-explain" data-explain>P&amp;L of bets settled in the last 24 hours.</p>
+    <div class="lb-table" role="tabpanel">
+      <div class="lb-th" aria-hidden="true"><span>Rank</span><span>Player</span><span>P&amp;L</span></div>
+      <ol class="lb-rows" data-lb="daily"><li class="lb-empty">Loading the leaderboard</li></ol>
+    </div>
+    <p class="fine">A player is a wallet address, shortened. Open one to see its transactions on MonadVision. All time is the wallet's test USDC plus its balance and open stakes, minus the {{grant}} grant.</p>
+  </div>
+</section>

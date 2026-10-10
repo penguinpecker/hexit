@@ -1,0 +1,122 @@
+<section class="hero">
+  <canvas class="hero-board" id="heroBoard" aria-hidden="true"></canvas>
+  <div class="hero-scrim" aria-hidden="true"></div>
+  <aside class="hero-feed" data-feed hidden aria-label="Live transactions on Monad testnet"><p class="micro"><i class="dot"></i>Live on Monad testnet</p><ol></ol></aside>
+  <div class="wrap hero-in">
+    <h1 class="display">Hexit the <span class="amber">range.</span></h1>
+    <p class="lead">Tap trading on a honeycomb of live price. Double-tap a hex: if the price line runs into it during its window, you win your stake times its multiplier.</p>
+    <div class="cta">
+      <a class="btn btn-primary btn-lg" href="/play">Play now</a>
+      <a class="btn btn-line btn-lg" href="/how-it-works">How it works</a>
+    </div>
+    <ul class="facts">
+      <li><b>{{grant}}</b> of test USDC to start</li>
+      <li><b>0 MON</b> needed, Hexit pays the gas</li>
+      <li><b>Every tap</b> is a Monad testnet transaction</li>
+    </ul>
+  </div>
+  <div class="strip">
+    <div class="wrap strip-in">
+      <span class="st-live" data-live><i class="dot"></i><span class="micro" data-live-txt>Connecting to the live tape</span></span>
+      <dl class="strip-dl">
+        <div><dt>Players funded</dt><dd data-h="players">—</dd></div>
+        <div><dt>Top all time</dt><dd data-h="top">—</dd></div>
+        <div><dt>Monad testnet block</dt><dd data-h="block">—</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section class="sec what">
+  <div class="wrap what-in">
+    <h2 class="h2">A price chart you can <span class="pink">tap.</span></h2>
+    <div class="what-copy">
+      <p>Hexit lays a honeycomb over a live price. Each column of hexes is a five-second window and each hex one band of price. The price line, the fuse, burns left to right through the board.</p>
+      <p>Double-tap a hex and your stake is armed. If the fuse touches that hex at any moment in its window, it goes <b class="pink">BOOM</b> and pays your stake times the multiplier printed on it. Hexes far from the price pay more, up to 100x.</p>
+      <dl class="specs">
+        <div><dt>Column</dt><dd>5 s</dd></div>
+        <div><dt>Hex</dt><dd>~6.7 s wide</dd></div>
+        <div><dt>Multipliers</dt><dd>1.01–100x</dd></div>
+        <div><dt>Stake from</dt><dd>{{minStake}}</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section class="sec steps">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 class="h2">Ten seconds <span class="blue">to learn.</span></h2>
+      <a class="more" href="/how-it-works">Read the full rules</a>
+    </div>
+    <ol class="step-list">
+      <li><figure class="step-art">{{art1}}</figure><p class="micro">{{micro1}}</p><h3 class="h3">{{step1}}</h3><p>{{text1}}</p></li>
+      <li><figure class="step-art">{{art2}}</figure><p class="micro">{{micro2}}</p><h3 class="h3">{{step2}}</h3><p>{{text2}}</p></li>
+      <li><figure class="step-art">{{art3}}</figure><p class="micro">{{micro3}}</p><h3 class="h3">{{step3}}</h3><p>{{text3}}</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 class="h2">Two markets. <span class="blue">One balance.</span></h2>
+      <a class="more" href="/markets">About the markets</a>
+    </div>
+    <p class="sub">Bitcoin and Monad, each on its own honeycomb. One test USDC balance plays both: switch market from the picker on the board.</p>
+    {{marketCards}}
+  </div>
+</section>
+
+<section class="sec live">
+  <div class="wrap live-in">
+    <div class="live-copy">
+      <h2 class="h2">On the board <span class="pink">now.</span></h2>
+      <p class="sub">Straight from the Hexit server and Monad testnet, refreshed every 15 seconds. Nothing here is a sample.</p>
+      <dl class="counters">
+        <div><dt>Players funded</dt><dd data-h="players">—</dd><small>wallets that received the welcome grant</small></div>
+        <div><dt>Watching live</dt><dd data-h="sse">—</dd><small>open live streams, this page included</small></div>
+        <div><dt>Bets relayed</dt><dd data-h="bets">—</dd><small>since the server last restarted</small></div>
+        <div><dt>Columns settled</dt><dd data-h="settles">—</dd><small>settle transactions since that restart</small></div>
+      </dl>
+    </div>
+    <div class="lb-card">
+      <div class="lb-head"><h3 class="micro">Top players // all time</h3><a class="more" href="/leaderboard">Full leaderboard</a></div>
+      <ol class="lb-rows" data-lb="all" data-max="5"><li class="lb-empty">Loading the leaderboard</li></ol>
+    </div>
+  </div>
+</section>
+
+<section class="sec gas">
+  <div class="wrap">
+    <h2 class="h2">Every tap is a transaction. <span class="blue">You pay no gas.</span></h2>
+    <p class="sub">Hexit runs on Monad testnet, chain {{chainId}}. Your bet is a real transaction you can open on MonadVision, and you never need MON to send it.</p>
+    <ol class="flow">
+      <li><b>Your browser signs</b><p>A test wallet created in this browser signs the bet. No extension, no popup per tap.</p></li>
+      <li><b>Hexit relays it</b><p>Our relayer sends the signed bet to Monad testnet and pays the MON gas.</p></li>
+      <li><b>The contract books it</b><p>HexitGame checks your signature, the signed multiplier and the limits before it takes the stake.</p></li>
+      <li><b>You see the receipt</b><p>A card on the right links the transaction. Settlements, grants, deposits and withdrawals show the same way.</p></li>
+    </ol>
+    <div class="addrs">
+      <h3 class="micro">Contracts and service wallets on Monad testnet</h3>
+      <table>
+        <tbody>
+          <tr><th scope="row">HexitGame<small>The game contract, upgradeable proxy</small></th><td><a href="https://testnet.monadvision.com/address/{{game}}" target="_blank" rel="noopener"><span class="full">{{game}}</span><span class="short">{{gameShort}}</span><svg class="ext" aria-hidden="true"><use href="#ext"/></svg></a></td></tr>
+          <tr><th scope="row">Test USDC<small>tUSDC token, upgradeable proxy</small></th><td><a href="https://testnet.monadvision.com/address/{{usdc}}" target="_blank" rel="noopener"><span class="full">{{usdc}}</span><span class="short">{{usdcShort}}</span><svg class="ext" aria-hidden="true"><use href="#ext"/></svg></a></td></tr>
+          <tr><th scope="row">Relayer<small>Sends your signed taps and pays the gas</small></th><td><a href="https://testnet.monadvision.com/address/{{relayer}}" target="_blank" rel="noopener"><span class="full">{{relayer}}</span><span class="short">{{relayerShort}}</span><svg class="ext" aria-hidden="true"><use href="#ext"/></svg></a></td></tr>
+          <tr><th scope="row">Keeper<small>Settles each column with its signed tape</small></th><td><a href="https://testnet.monadvision.com/address/{{keeper}}" target="_blank" rel="noopener"><span class="full">{{keeper}}</span><span class="short">{{keeperShort}}</span><svg class="ext" aria-hidden="true"><use href="#ext"/></svg></a></td></tr>
+          <tr><th scope="row">Recorder<small>Signs the 100 ms price tape</small></th><td><a href="https://testnet.monadvision.com/address/{{recorder}}" target="_blank" rel="noopener"><span class="full">{{recorder}}</span><span class="short">{{recorderShort}}</span><svg class="ext" aria-hidden="true"><use href="#ext"/></svg></a></td></tr>
+          <tr><th scope="row">Quoter<small>Signs the multipliers on the board</small></th><td><a href="https://testnet.monadvision.com/address/{{quoter}}" target="_blank" rel="noopener"><span class="full">{{quoter}}</span><span class="short">{{quoterShort}}</span><svg class="ext" aria-hidden="true"><use href="#ext"/></svg></a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="wrap cta-band-in">
+    <h2 class="display-2">Your first <span class="amber">{{grant}}</span> is on us.</h2>
+    <p>Test USDC on Monad testnet, credited once when you sign up. No deposit, no gas, withdraw whenever you like.</p>
+    <a class="btn btn-primary btn-lg" href="/play">Play now</a>
+  </div>
+</section>

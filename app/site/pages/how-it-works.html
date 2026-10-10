@@ -1,0 +1,111 @@
+<header class="page-head">
+  <div class="wrap">
+    <h1 class="h1">How <span class="pink">it works.</span></h1>
+    <p class="lead">The full rules, from the honeycomb to the settlement on Monad testnet. Every number here is the one the contract and the app use today.</p>
+  </div>
+</header>
+
+<div class="wrap doc">
+  <nav class="toc" aria-label="On this page">
+    <b class="micro">On this page</b>
+    <a href="#board">The board</a>
+    <a href="#multipliers">Multipliers</a>
+    <a href="#lock">The lock</a>
+    <a href="#bet">Placing a bet</a>
+    <a href="#outcomes">Boom, dud, refund</a>
+    <a href="#settlement">Settlement on chain</a>
+    <a href="#fairness">Fairness</a>
+    <a href="#balance">Your balance</a>
+  </nav>
+
+  <article class="prose">
+    <h2 id="board">The board</h2>
+    <p>The board is a honeycomb of flat-top hexagons laid over time (left to right) and price (bottom to top). The live price is the fuse: a price index sampled every 100 ms and drawn as straight lines from tick to tick.</p>
+    <figure class="diagram">
+      <svg viewBox="0 0 680 300" role="img" aria-labelledby="dgT">
+        <title id="dgT">Three columns of flat-top hexes. Columns are 5 seconds apart, each hex is about 6.7 seconds wide and one price band tall, and odd columns sit half a band higher.</title>
+        <g fill="rgba(62,43,92,.32)" stroke="rgba(208,188,255,.32)" stroke-width="1.2">
+          <polygon points="236,90 213,129.8 167,129.8 144,90 167,50.2 213,50.2"/>
+          <polygon points="236,169.6 213,209.4 167,209.4 144,169.6 167,129.8 213,129.8"/>
+          <polygon points="305,50.2 282,90 236,90 213,50.2 236,10.4 282,10.4"/>
+          <polygon points="305,129.8 282,169.6 236,169.6 213,129.8 236,90 282,90"/>
+          <polygon points="305,209.4 282,249.2 236,249.2 213,209.4 236,169.6 282,169.6"/>
+          <polygon points="374,90 351,129.8 305,129.8 282,90 305,50.2 351,50.2"/>
+          <polygon points="374,169.6 351,209.4 305,209.4 282,169.6 305,129.8 351,129.8"/>
+        </g>
+        <polygon points="374,169.6 351,209.4 305,209.4 282,169.6 305,129.8 351,129.8" fill="rgba(251,191,36,.18)" stroke="#fbbf24" stroke-width="2"/>
+        <path d="M40 232 L72 220 L96 228 L124 202 L150 210 L176 186 L198 176 L222 160 L246 152" fill="none" stroke="#f26aff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="246" cy="152" r="5" fill="#fff"/>
+        <g font-family="Space Grotesk" font-weight="700" font-size="15" letter-spacing="1" fill="#c1c7d3" stroke-width="1.5">
+          <path d="M190 268 H259 M190 262 v12 M259 262 v12" stroke="#a4c9ff"/>
+          <text x="224.5" y="290" text-anchor="middle" fill="#a4c9ff">5 S</text>
+          <path d="M282 232 H374 M282 226 v12 M374 226 v12" stroke="#fbbf24"/>
+          <text x="328" y="254" text-anchor="middle" fill="#fbbf24">~6.7 S</text>
+          <path d="M392 129.8 H404 M392 209.4 H404 M398 129.8 V209.4" stroke="#fbbf24"/>
+          <text x="416" y="166" fill="#fbbf24">ONE HEX</text>
+          <text x="416" y="184" fill="#c1c7d3">ONE BAND OF PRICE</text>
+          <text x="416" y="40" fill="#d0bcff">ODD COLUMNS SIT</text>
+          <text x="416" y="58" fill="#d0bcff">HALF A BAND HIGHER</text>
+          <text x="40" y="256" fill="#f26aff">THE FUSE</text>
+        </g>
+      </svg>
+    </figure>
+    <ul>
+      <li><strong>Columns</strong> are 5 seconds apart. Each column is one window of time.</li>
+      <li><strong>Hexes</strong> are about 6.7 seconds wide and one price band tall. Odd columns sit half a band higher, so the hexes tessellate with no gaps.</li>
+      <li><strong>The line is never smoothed.</strong> Bets settle on the straight segments between 100 ms ticks, so a curve could cross a hex the price never touched.</li>
+    </ul>
+
+    <h2 id="multipliers">Multipliers</h2>
+    <p>Every open hex shows its multiplier: what a winning bet pays per dollar staked. Hexes near the price and soon pay little; hexes far from the price, or further out in time, pay more.</p>
+    <ul>
+      <li>Multipliers run from <strong>1.01x to 100x</strong>, rounded down to three significant figures. A hex worth less than 1.01x is not offered and shows a dash.</li>
+      <li>Hexit's quoter prices the next <strong>18 columns</strong> (90 seconds) about four times a second, and signs each column's multipliers.</li>
+      <li>A signed quote is good for <strong>{{quoteMaxAgeS}} s</strong>. The contract refuses any bet on an older one.</li>
+    </ul>
+
+    <h2 id="lock">The lock</h2>
+    <p>You can't arm a hex whose window is about to open: its left tip must be at least <strong>{{lockS}} seconds</strong> ahead when the bet lands. The dashed <span class="tag-lock">LOCK</span> line on the board marks that edge, and hexes to its left are dimmed. It keeps anyone from betting on a move they can already see.</p>
+
+    <h2 id="bet">Placing a bet</h2>
+    <ol>
+      <li><strong>Pick a stake.</strong> Stakes start at {{minStake}}. New accounts can stake up to $5 per hex and $25 per column.</li>
+      <li><strong>Double-tap a hex</strong> (double-click with a mouse). Your built-in wallet signs the bet on this device: the hex, the stake and the lowest multiplier you accept, set by your slippage setting.</li>
+      <li><strong>The relayer sends it.</strong> Hexit's relayer submits the signed bet to the HexitGame contract and pays the gas. The contract fills it at the signed multiplier and takes the stake from your balance.</li>
+      <li><strong>Watch the hex.</strong> It reads <em>Filling</em> while the transaction lands, <em>Armed</em> until its window opens, <em>Live</em> during the window, then <em>Settling</em>.</li>
+    </ol>
+    <p>An armed bet can't be cancelled. A single bet pays at most <strong>{{maxPayout}}</strong>, a player can hold up to <strong>{{maxOpen}}</strong> open bets, and each hex, column and market has a limit on what it can pay out. A tap over a limit is refused before it costs anything.</p>
+
+    <h2 id="outcomes">Boom, dud, refund</h2>
+    <dl class="outcomes">
+      <div class="o-boom"><dt>Boom</dt><dd>The fuse enters your hex at any moment in its window. You get your stake times the multiplier.</dd></div>
+      <div class="o-dud"><dt>Dud</dt><dd>The fuse never touches it. The stake is lost.</dd></div>
+      <div class="o-void"><dt>Refund</dt><dd>The price feed had a gap longer than {{gapMs}} ms in that column and the fuse never touched your hex, or no signed tape reached the chain within {{voidAfterS}} seconds of the window. Your stake comes back in full.</dd></div>
+    </dl>
+    <p>Missing data is never a win for the house. The board shows BOOM the instant the drawn line enters your hex, using the same live tape; the settlement on chain confirms it a few seconds later. If the chain ever disagrees, the chain's result stands and the app tells you.</p>
+
+    <h2 id="settlement">Settlement on chain</h2>
+    <p>When a column's window ends, Hexit's recorder signs that column's tape: every 100 ms price tick across the window. The keeper sends the signed tape to the contract's <code>settleColumn</code>, which anyone may call. The contract then checks, in order:</p>
+    <ul>
+      <li>the recorder's signature on the tape;</li>
+      <li>that the ticks sit on the 100 ms grid and only move forward;</li>
+      <li>that the tape covers the whole window;</li>
+      <li>that no 100 ms step moves further than the allowed maximum.</li>
+    </ul>
+    <p>It works out every hex the straight segments touched and settles each open bet in that column as a win, a loss or a refund. If no valid tape arrives within {{voidAfterS}} seconds, anyone can call <code>voidColumn</code> and every open bet on that column is refunded. Columns nobody bet on cost nothing: idle time writes nothing to the chain.</p>
+
+    <h2 id="fairness">Fairness</h2>
+    <ul>
+      <li><strong>A signed tape.</strong> The price is an index of several exchanges, recorded every 100 ms. The contract accepts a tape only with the recorder's signature and does the hex geometry itself.</li>
+      <li><strong>Signed multipliers.</strong> The multiplier on a hex is signed by Hexit's quoter. The contract reads your multiplier from that signed quote, never from the app, and your own signature sets the lowest you accept.</li>
+      <li><strong>No stale quotes.</strong> Quotes expire after {{quoteMaxAgeS}} s, and the relayer refuses a tap when the price has moved more than a quarter of a band since its quote.</li>
+      <li><strong>The hex you see is the hex that settles.</strong> The board draws the same flat-top hexagon and the same straight segments the contract checks.</li>
+      <li><strong>Every tap is a transaction.</strong> Your bets, their settlements, the grant, deposits and withdrawals are all Monad testnet transactions. Each one pops up with a link to MonadVision, and anyone can read them.</li>
+    </ul>
+
+    <h2 id="balance">Your balance</h2>
+    <p>Your balance is credit held for you inside the HexitGame contract, one balance for every market. A new player gets {{grant}} of test USDC once. Stakes come out of it, wins and refunds go back in. <strong>Withdraw</strong> sends test USDC from it to your wallet's own address, and <strong>Add funds</strong> moves test USDC from your wallet back into play. Both are signed in the browser and sent by the relayer, so they need no gas either.</p>
+
+    <p class="doc-cta"><a class="btn btn-primary" href="/play">Play now</a><a class="more" href="/faq">Questions? Read the FAQ</a></p>
+  </article>
+</div>

@@ -1,0 +1,29 @@
+== pure BM, 100ms tick segments, 200k paths ==
+SOL hex  d=+0.00 tau=  7.60 claimed=0.68387 mine=0.68485+-0.00104 z=-0.94
+SOL hex  d=+0.50 tau=  7.60 claimed=0.61065 mine=0.61148+-0.00109 z=-0.76
+SOL hex  d=+1.00 tau= 12.60 claimed=0.41991 mine=0.41953+-0.00110 z=+0.34
+SOL hex  d=-1.50 tau= 22.60 claimed=0.28946 mine=0.28874+-0.00101 z=+0.71
+SOL hex  d=+0.25 tau= 32.60 claimed=0.40663 mine=0.40592+-0.00110 z=+0.65
+SOL hex  d=+3.00 tau= 92.60 claimed=0.14374 mine=0.14400+-0.00079 z=-0.32
+SOL rect d=+0.00 tau=  8.43 claimed=0.71364 mine=0.71379+-0.00101 z=-0.15
+SOL rect d=+1.00 tau= 33.43 claimed=0.36725 mine=0.36621+-0.00108 z=+0.97
+ETH hex  d=+0.50 tau=  7.60 claimed=0.65199 mine=0.65188+-0.00107 z=+0.10
+ETH hex  d=+1.00 tau= 12.60 claimed=0.00640 mine=0.00673+-0.00018 z=-1.78
+ETH hex  d=+0.25 tau= 32.60 claimed=0.87413 mine=0.87242+-0.00075 z=+2.30
+ETH hex  d=+1.00 tau= 92.60 claimed=0.15593 mine=0.15515+-0.00081 z=+0.96
+ETH rect d=+1.00 tau= 33.43 claimed=0.05421 mine=0.05352+-0.00050 z=+1.37
+== monitoring: 100ms segs vs 5ms segs vs jittered ==
+SOL d=0.5 tau=7.6: seg=0.6095+-0.0011 (claim 0.6115) cont5ms=0.6356+-0.0015 (claim 0.6323) ratio=1.043 jitter=0.6093
+ETH d=1 tau=12.6: seg=0.0064+-0.0002 (claim 0.0064) cont5ms=0.0064+-0.0003 (claim 0.0071) ratio=1.002 jitter=0.0064
+== mixture multipliers (edge .08, round3 down, cap 100) ==
+SOL off=+0 c1: hex P=0.64172+-0.00076 M=1.43 (claim 1.43) | rect P=0.66443 M=1.38 (claim 1.38) | hex/rect=1.035 | edge@claimedM=0.0823+-0.0011
+SOL off=+1 c1: hex P=0.58833+-0.00078 M=1.56 (claim 1.56) | rect P=0.60760 M=1.51 (claim 1.51) | hex/rect=1.033 | edge@claimedM=0.0822+-0.0012
+SOL off=+4 c3: hex P=0.22348+-0.00066 M=4.11 (claim 4.11) | rect P=0.23280 M=3.95 (claim 3.95) | hex/rect=1.042 | edge@claimedM=0.0815+-0.0027
+SOL off=+6 c6: hex P=0.13470+-0.00054 M=6.82 (claim 6.85) | rect P=0.13959 M=6.59 (claim 6.6) | hex/rect=1.036 | edge@claimedM=0.0773+-0.0037
+ETH off=+1 c1: hex P=0.65197+-0.00075 M=1.41 (claim 1.41) | rect P=0.68822 M=1.33 (claim 1.33) | hex/rect=1.056 | edge@claimedM=0.0807+-0.0011
+ETH off=+2 c1: hex P=0.03225+-0.00028 M=28.5 (claim 28.3) | rect P=0.03712 M=24.7 (claim 24.6) | hex/rect=1.151 | edge@claimedM=0.0873+-0.0079
+ETH off=+2 c2: hex P=0.04870+-0.00034 M=18.8 (claim 18.9) | rect P=0.05485 M=16.7 (claim 16.8) | hex/rect=1.126 | edge@claimedM=0.0797+-0.0064
+ETH off=+3 c4: hex P=0.01244+-0.00018 M=73.9 (claim 74.7) | rect P=0.01359 M=67.6 (claim 67.6) | hex/rect=1.093 | edge@claimedM=0.0707+-0.0131
+ETH off=+0 c6: hex P=0.89567+-0.00048 M=1.02 (claim 1.02) | rect P=0.90641 M=1.01 (claim 1.01) | hex/rect=1.012 | edge@claimedM=0.0864+-0.0005
+ETH d=1 tau=12.6 seg (np.float64(0.006453), 8.007096097212772e-05) cont5ms (np.float64(0.007025), 0.00010782431215485062) ratio 1.0886409421974275
+ETH d=.5 tau=7.6 seg (np.float64(0.6520425), 0.000753131924356135) cont5ms (np.float64(0.667325), 0.0010535709382262781) ratio 1.023437889401381

@@ -1,0 +1,23 @@
+{
+  "name": "@hexit/app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hexit web app on Monad testnet",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@dicebear/bottts": "9.2.2",
+    "@dicebear/core": "9.2.2",
+    "@hexit/monad": "file:../packages/monad",
+    "@hexit/pricing": "file:../packages/pricing"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

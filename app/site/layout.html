@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+{{head}}
+<title>{{title}}</title>
+<meta name="description" content="{{desc}}">
+<link rel="canonical" href="{{site}}{{path}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hexit">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{desc}}">
+<meta property="og:url" content="{{site}}{{path}}">
+<meta property="og:image" content="{{site}}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Hexit wordmark and the line HEXIT THE RANGE beside a honeycomb of multipliers with a price line running through it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{site}}/og.png">
+<meta name="theme-color" content="#1b0639">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/space-grotesk-latin.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/inter-latin.woff2">
+<link rel="stylesheet" href="/site.css">
+<script src="/site.js" defer></script>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 120 120">
+    <path d="M82 21.9 H38 L16 60 L38 98.1 H82" fill="none" stroke="#d0bcff" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M30 70 L44 61 L54 68 L67 51 L79 56 L101 35" fill="none" stroke="#f26aff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <polygon points="104.00,19.00 105.72,27.84 113.19,22.81 108.16,30.28 117.00,32.00 108.16,33.72 113.19,41.19 105.72,36.16 104.00,45.00 102.28,36.16 94.81,41.19 99.84,33.72 91.00,32.00 99.84,30.28 94.81,22.81 102.28,27.84" fill="#fbbf24"/><circle cx="104" cy="32" r="3.6" fill="#fff"/>
+  </symbol>
+  <symbol id="ext" viewBox="0 0 16 16"><path d="M5.5 3.5h7v7M12.5 3.5 4 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="brand" href="/" data-p="/" aria-label="Hexit home"><svg aria-hidden="true"><use href="#mark"/></svg><b>He<span>x</span>it</b></a>
+    <nav class="nav" aria-label="Site">
+      <a href="/how-it-works" data-p="/how-it-works">How it works</a>
+      <a href="/markets" data-p="/markets">Markets</a>
+      <a href="/leaderboard" data-p="/leaderboard">Leaderboard</a>
+      <a href="/faq" data-p="/faq">FAQ</a>
+    </nav>
+    <span class="net"><i class="dot"></i>Monad testnet</span>
+    <a class="btn btn-primary btn-play" href="/play">Play now</a>
+    <details class="menu">
+      <summary aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18" stroke="currentColor" stroke-width="2" fill="none"/></svg></summary>
+      <nav aria-label="Site">
+        <a href="/" data-p="/">Home</a>
+        <a href="/how-it-works" data-p="/how-it-works">How it works</a>
+        <a href="/markets" data-p="/markets">Markets</a>
+        <a href="/leaderboard" data-p="/leaderboard">Leaderboard</a>
+        <a href="/faq" data-p="/faq">FAQ</a>
+      </nav>
+    </details>
+  </div>
+</header>
+
+<main id="main">
+{{body}}
+</main>
+
+<footer class="ftr">
+  <div class="wrap ftr-in">
+    <div class="ftr-brand">
+      <a class="brand" href="/" aria-label="Hexit home"><svg aria-hidden="true"><use href="#mark"/></svg><b>He<span>x</span>it</b></a>
+      <p class="tag">Hexit the <span>range.</span></p>
+      <p class="fine">A testnet preview on Monad (chain {{chainId}}). Test USDC and test MON have no monetary value.</p>
+    </div>
+    <nav aria-label="Game"><b class="micro">Game</b><a href="/play">Play</a><a href="/how-it-works">How it works</a><a href="/markets">Markets</a><a href="/leaderboard">Leaderboard</a></nav>
+    <nav aria-label="Help"><b class="micro">Help</b><a href="/faq">FAQ</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/cookies">Cookies</a></nav>
+    <nav aria-label="On chain"><b class="micro">On chain</b>
+      <a href="https://testnet.monadvision.com/address/{{game}}" target="_blank" rel="noopener">HexitGame <svg class="ext" aria-hidden="true"><use href="#ext"/></svg></a>
+      <a href="https://testnet.monadvision.com/address/{{usdc}}" target="_blank" rel="noopener">Test USDC <svg class="ext" aria-hidden="true"><use href="#ext"/></svg></a>
+    </nav>
+  </div>
+</footer>
+</html>

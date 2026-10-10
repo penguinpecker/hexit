@@ -1,0 +1,31 @@
+{
+  "name": "@hexit/monad",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hexit Monad client: chain, ABIs, EIP-712 typed data, calldata, events, errors, gas limits (contracts/README.md)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "abi": "node scripts/abi.mjs",
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "viem": "2.57.4"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}

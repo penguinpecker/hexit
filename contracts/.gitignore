@@ -1,0 +1,8 @@
+out/
+cache/
+node_modules/
+broadcast/**/dry-run/
+# local anvil runs (gas.sh, deploy tests)
+broadcast/*/31337/
+deployments/31337.json
+deployments/gasbench-*.json
