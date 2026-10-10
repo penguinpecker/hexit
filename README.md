@@ -27,7 +27,7 @@ The full high-level architecture (the life of a tap, settlement, prices and odds
 
 ```mermaid
 flowchart LR
-  EX["Market data<br/>Perpl on Monad"]
+  EX["Market data<br/>Perpl on Monad testnet"]
 
   subgraph VERCEL["Vercel: web"]
     APP["Web app<br/>board, popups, feed"]
@@ -121,17 +121,17 @@ hexit/
 
 ## Market data
 
-BTC/USD and MON/USD market data comes from **[Perpl](https://perpl.xyz)**, the on-chain order-book exchange on Monad.
+BTC/USD and MON/USD market data comes from **[Perpl](https://perpl.xyz)** on **Monad testnet**, the same network the game runs on. Perpl is an on-chain order-book exchange on Monad.
 
-- **Markets:** Perpl's Monad mainnet BTC (market 1) and MON (market 10) order books.
-- **Interface:** Perpl's public market-data WebSocket (`wss://app.perpl.xyz/ws/v1/market-data`): one subscription for the two order books and the block heartbeat. No API key is needed.
+- **Markets:** Perpl's Monad testnet BTC (market 16) and MON (market 64) order books.
+- **Interface:** Perpl's public testnet market-data WebSocket (`wss://testnet.perpl.xyz/ws/v1/market-data`): one subscription for the two order books and the block heartbeat. No API key is needed.
 - **What is used:** the best bid and ask. The server keeps each book from Perpl's snapshots and updates, and re-reads the best bid and ask on every Monad block (about every 0.3 s), so a quiet book still counts as live.
 - **Into the game:** the price index samples it every 100 ms. That 100 ms tape is what the server signs and what the contract settles bets against.
 - **Where to look:** `services/game/src/feed/sources.ts` (the Perpl connection) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), section 5 (how the index combines its sources).
 
 ## Features
 
-- **Two markets on one balance:** BTC/USD and MON/USD, with market data from Perpl on Monad.
+- **Two markets on one balance:** BTC/USD and MON/USD, with market data from Perpl on Monad testnet.
   - Each market has its own board, quotes and settlement.
   - Switching market never cancels a bet; bets on the other market keep settling.
 - **Every tap is on chain.** Bets, settlements, grants, deposits and withdrawals are all Monad testnet transactions.
@@ -174,7 +174,7 @@ BTC/USD and MON/USD market data comes from **[Perpl](https://perpl.xyz)**, the o
 Step by step through the diagram in "Architecture":
 
 1. **Price index.**
-   - The server reads Perpl's BTC and MON order books on Monad (see "Market data") and combines its sources into one price every 100 ms.
+   - The server reads Perpl's BTC and MON order books on Monad testnet (see "Market data") and combines its sources into one price every 100 ms.
    - It drops crossed or wide order books and outliers first.
    - A moment without enough fresh, agreeing data has no tick, which leaves a hole in the tape. The index never guesses.
    - How the sources are combined, step by step: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), section 5.

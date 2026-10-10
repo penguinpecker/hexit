@@ -75,13 +75,15 @@ export const VENUES: Record<string, Venue> = {
   perpl: perplVenue(),
 };
 
-/** Perpl, the on-chain perp exchange on Monad (owner, 2026-10-10: "just use their apis"): its mainnet order books over
- *  the public market-data websocket (no key; 10 requests/min and 16 subscriptions per connection, so one subscribe frame
- *  and no app pings). Market ids and price decimals read live 2026-10-10 from https://app.perpl.xyz/api/v1/pub/context.
+/** Perpl, the on-chain perp exchange on Monad (owner, 2026-10-10: "just use their apis"; then: live trades on testnet):
+ *  its Monad TESTNET order books over the public market-data websocket (no key; 10 requests/min and 16 subscriptions per
+ *  connection, so one subscribe frame and no app pings). Market ids and price decimals read live 2026-10-10 from
+ *  https://testnet.perpl.xyz/api/v1/pub/context (mainnet, used before: wss://app.perpl.xyz, chain 143, BTC 1/dp 1,
+ *  MON 10/dp 6).
  *  The book is kept from snapshots (mt 15) and updates (mt 16, a level with o 0 is gone). It can sit unchanged for
  *  10-25 s, so every block heartbeat (mt 100, ~0.3 s) re-sends the best bid/ask: the book is current as of that block. */
 function perplVenue(): Venue {
-  const MKT: Record<string, { id: number; dp: number }> = { BTC: { id: 1, dp: 1 }, MON: { id: 10, dp: 6 } };
+  const MKT: Record<string, { id: number; dp: number }> = { BTC: { id: 16, dp: 1 }, MON: { id: 64, dp: 5 } };
   const byId = new Map(Object.entries(MKT).map(([s, m]) => [String(m.id), { ...m, s }]));
   const sids = new Map<number, string>(), books = new Map<string, { bid: Map<number, number>; ask: Map<number, number> }>();
   const dec = (p: number, dp: number) => { const s = String(p).padStart(dp + 1, '0'); return dp ? `${s.slice(0, -dp)}.${s.slice(-dp)}` : s; };
@@ -92,8 +94,8 @@ function perplVenue(): Venue {
   };
   return {
     name: 'perpl', quote: 'USD',   // AUSD collateral, priced in US dollars
-    url: () => 'wss://app.perpl.xyz/ws/v1/market-data',
-    subs: (ids) => [{ mt: 5, subs: ['heartbeat@143', ...ids.filter((id) => byId.has(id)).map((id) => `order-book@${id}`)]
+    url: () => 'wss://testnet.perpl.xyz/ws/v1/market-data',
+    subs: (ids) => [{ mt: 5, subs: ['heartbeat@10143', ...ids.filter((id) => byId.has(id)).map((id) => `order-book@${id}`)]
       .map((stream) => ({ stream, subscribe: true })) }],
     parse: (m) => {
       if (m.mt === 6) {   // subscription ids for this connection; a reconnect starts a fresh book from its snapshot

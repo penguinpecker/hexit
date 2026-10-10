@@ -26,6 +26,7 @@ export interface IndexConfig {
   maxSpreadBps: number;
   outlierBps: number;
   minVenues: number;
+  minVenuesFor?: Partial<Record<Asset, number>>;   // an asset fewer venues quote (MON: Binance lists none)
   usdt: { windowMs: number; minE8: bigint; maxE8: bigint };
 }
 
@@ -102,6 +103,7 @@ export class HexitIndex {
     const { usdt } = this.cfg;
     const depeg = rate !== null && (rate < usdt.minE8 || rate > usdt.maxE8);
     return this.cfg.assets.map((asset): Sample => {
+      const need = this.cfg.minVenuesFor?.[asset] ?? this.cfg.minVenues;
       if (depeg) return { kind: 'gap', asset, ts: t, reason: 'usdt-depeg', fresh: 0 };
       const c: { v: string; mid: bigint }[] = [];
       for (const v of this.cfg.venues) {
@@ -110,10 +112,10 @@ export class HexitIndex {
         if (v.quote === 'USDT') { if (rate === null) continue; m = (m * rate) / E8; }
         c.push({ v: v.name, mid: m });
       }
-      if (c.length < this.cfg.minVenues) return { kind: 'gap', asset, ts: t, reason: 'quorum', fresh: c.length };
+      if (c.length < need) return { kind: 'gap', asset, ts: t, reason: 'quorum', fresh: c.length };
       const m1 = median(c.map((x) => x.mid));
       const kept = c.filter((x) => absB(x.mid - m1) * 10_000n <= BigInt(this.cfg.outlierBps) * m1);
-      if (kept.length < this.cfg.minVenues) return { kind: 'gap', asset, ts: t, reason: 'outliers', fresh: kept.length };
+      if (kept.length < need) return { kind: 'gap', asset, ts: t, reason: 'outliers', fresh: kept.length };
       return { kind: 'tick', asset, ts: t, price_e8: median(kept.map((x) => x.mid)), sources: kept.map((x) => x.v) };
     });
   }

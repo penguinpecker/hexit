@@ -12,6 +12,7 @@ export interface FeedConfig {
   maxSpreadBps: number;
   outlierBps: number;
   minVenues: number;
+  minVenuesFor?: Partial<Record<Asset, number>>;
   usdt: { windowMs: number; min: string; max: string };
   gapMs: number;
   maxTickAgeMs: number;
@@ -22,8 +23,10 @@ export interface FeedConfig {
 // BTC/USD and MON/USD (owner, 2026-10-10). Venues, spread and staleness from the 2026-10-10 replay of a live capture:
 // MON's books are wider (Gate 12 bps median) and its quiet venues go silent for over 1 s; at 20 bps / 2 s neither index
 // had a gap over 250 ms. Perpl joined the median the same day (owner): alone it paused over 2 s and its BTC book sat
-// still for a minute, so it is one venue among the exchanges. Binance never quotes MON, so MON has 6 venues and BTC 7;
-// the floor makes the quorum 4 (2 live minutes at 4: no gap on either, Perpl inside 99 % of ticks).
+// still for a minute, so it is one venue among the exchanges; its Monad TESTNET books since the owner asked for testnet
+// trades. Binance never quotes MON, so BTC has 7 venues (quorum 4) and MON 6 (quorum 3, as before Perpl). 2 live minutes
+// with testnet Perpl: BTC no gap with Perpl in every tick; MON 2 gap ticks at 3 (Perpl's wide testnet MON book is in
+// about a quarter of ticks) against 12 at 4.
 export const DEFAULTS: FeedConfig = {
   assets: ['BTC', 'MON'],
   venues: ['binance', 'okx', 'bybit', 'coinbase', 'kraken', 'gate', 'perpl'],
@@ -32,6 +35,7 @@ export const DEFAULTS: FeedConfig = {
   maxSpreadBps: 20,
   outlierBps: 15,
   minVenues: 4,
+  minVenuesFor: { MON: 3 },
   usdt: { windowMs: 60_000, min: '0.98', max: '1.02' },
   gapMs: 250,
   maxTickAgeMs: 2500,
@@ -45,6 +49,9 @@ export function loadConfig(path?: string): FeedConfig {
   for (const a of c.assets) if (!(a in ASSET_ID)) throw new Error(`unknown asset ${a}`);
   // Quorum floor: fresh >= 2 and fresh >= ceil(configured / 2)
   if (c.minVenues < Math.max(2, Math.ceil(c.venues.length / 2))) throw new Error('minVenues below max(2, ceil(venues/2))');
+  // an asset one venue never quotes (MON: Binance) is held to the majority of the rest
+  for (const [a, n] of Object.entries(c.minVenuesFor ?? {}))
+    if (n < Math.max(2, Math.ceil((c.venues.length - 1) / 2))) throw new Error(`minVenuesFor.${a} below max(2, ceil((venues-1)/2))`);
   return c;
 }
 
@@ -54,7 +61,7 @@ export function indexConfig(c: FeedConfig): IndexConfig {
     assets: c.assets,
     venues: c.venues.map((name) => ({ name, quote: VENUES[name].quote })),
     staleMs: c.staleMs, maxQuoteAgeMs: c.maxQuoteAgeMs, maxSpreadBps: c.maxSpreadBps,
-    outlierBps: c.outlierBps, minVenues: c.minVenues,
+    outlierBps: c.outlierBps, minVenues: c.minVenues, minVenuesFor: c.minVenuesFor,
     usdt: { windowMs: c.usdt.windowMs, minE8: e8(c.usdt.min), maxE8: e8(c.usdt.max) },
   };
 }

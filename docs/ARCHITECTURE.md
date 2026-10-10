@@ -71,7 +71,7 @@ flowchart LR
 |---|---|---|
 | Web app | Static files served by Vercel, running in the player's browser | Draws the board on a canvas (full screen up to 4K on desktop, a touch layout on phones), shows a popup for every transaction with a link to the block explorer, and shows the activity feed, profile and leaderboard. It talks only to the game server's API, never directly to the blockchain. |
 | Built-in wallet | The player's browser | A **private key** (the secret that proves who signed something) created when the player first starts playing and kept in the browser's local storage. It signs bets, withdrawals and deposits on the device. The key is never sent anywhere. |
-| Price index | Game server | Listens to six exchanges plus Perpl's Monad order book and produces one price, a **tick**, per market every 100 ms. |
+| Price index | Game server | Listens to six exchanges plus Perpl's Monad testnet order books and produces one price, a **tick**, per market every 100 ms. |
 | Quoter | Game server | Every 250 ms prices the visible board (18 columns × 64 hexagons per market) and signs the multipliers. |
 | Recorder | Game server | When a column's time window has passed, signs that column's list of ticks, its **tape**. |
 | Relayer | Game server | Checks each signed bet, test-runs it, and sends it to the contract, paying the gas. Also sends the one-time grant and players' signed deposits and withdrawals. |
@@ -195,15 +195,15 @@ Where to look: `contracts/src/HexitGame.sol` (`settleColumn`, `voidColumn`, `_ap
 flowchart LR
   V["Best bid and ask<br/>from each exchange"] --> F["Keep a venue if its connection sent anything<br/>in the last 2 s, its quote for this asset is<br/>under 60 s old, not crossed, spread at most 0.20 percent"]
   F --> U["Convert USDT prices to USD<br/>(USDT outside 0.98 to 1.02 means no tick)"]
-  U --> Q1{"At least 4 venues?"}
+  U --> Q1{"Enough venues?<br/>BTC 4, MON 3"}
   Q1 -->|"no"| H["No tick:<br/>a hole in the tape"]
   Q1 -->|"yes"| M["Median, then drop venues<br/>more than 0.15 percent away"]
-  M --> Q2{"Still at least 4?"}
+  M --> Q2{"Still enough?"}
   Q2 -->|"no"| H
   Q2 -->|"yes"| T["Tick = median of the rest"]
 ```
 
-The server keeps public, keyless WebSocket connections to six exchanges (Binance, OKX, Bybit, Coinbase, Kraken and Gate) and to Perpl, a perpetual-futures exchange whose order book lives on Monad, and reads each one's best bid and ask. Perpl's book can sit unchanged for many seconds, so the server re-sends its current best bid and ask on every Monad block it hears about; on its own it paused for over 2 s at times, which is why it is one venue among seven rather than the only one. Every 100 ms, for each market separately, it builds the tick as in the diagram. Some venues price in USDT, a dollar-pegged token; those prices are converted with a USDT/USD rate averaged over 60 s from the venues that price in dollars. Binance does not list MON, so MON draws on six venues and BTC on seven; both need four. Prices are whole numbers in units of 10⁻⁸ dollars, and the index never copies a previous tick forward: an instant without agreement is simply missing. The index is deterministic, so replaying the same exchange messages gives the same ticks.
+The server keeps public, keyless WebSocket connections to six exchanges (Binance, OKX, Bybit, Coinbase, Kraken and Gate) and to Perpl, a perpetual-futures exchange whose order book lives on Monad (its testnet BTC and MON markets), and reads each one's best bid and ask. Perpl's book can sit unchanged for many seconds, so the server re-sends its current best bid and ask on every Monad block it hears about; on its own it paused for over 2 s at times, which is why it is one venue among seven rather than the only one. Every 100 ms, for each market separately, it builds the tick as in the diagram. Some venues price in USDT, a dollar-pegged token; those prices are converted with a USDT/USD rate averaged over 60 s from the venues that price in dollars. Binance does not list MON, so MON draws on six venues and needs three, and BTC draws on seven and needs four. Prices are whole numbers in units of 10⁻⁸ dollars, and the index never copies a previous tick forward: an instant without agreement is simply missing. The index is deterministic, so replaying the same exchange messages gives the same ticks.
 
 The server also refuses a tick that jumps further than the contract's per-tick move limit for that market, because a tape containing it could never be settled. The refused tick becomes a hole, which the gap rule turns into refunds.
 

@@ -147,6 +147,8 @@ test('defaults: BTC and MON on six exchanges plus Perpl; quorum 4 meets the floo
   assert.deepEqual(indexConfig(c).venues.filter((v) => ['gate', 'perpl'].includes(v.name)), [{ name: 'gate', quote: 'USDT' }, { name: 'perpl', quote: 'USD' }]);
   const dir = mkdtempSync(join(tmpdir(), 'hexit-feed-')), file = (o: object) => { const p = join(dir, 'c.json'); writeFileSync(p, JSON.stringify(o)); return p; };
   assert.throws(() => loadConfig(file({ minVenues: 3 })), /minVenues/);          // 3 of 7 venues: below ceil(7/2)
+  assert.deepEqual(c.minVenuesFor, { MON: 3 });                                    // MON: 6 venues quote it
+  assert.throws(() => loadConfig(file({ minVenuesFor: { MON: 2 } })), /minVenuesFor\.MON/);
   assert.throws(() => loadConfig(file({ assets: ['DOGE'] })), /unknown asset/);
   assert.deepEqual(loadConfig(file({ assets: ['MON'] })).assets, ['MON']);
   rmSync(dir, { recursive: true });
@@ -154,13 +156,21 @@ test('defaults: BTC and MON on six exchanges plus Perpl; quorum 4 meets the floo
 
 test('perpl: book from snapshot + updates, best bid/ask in dollars, re-sent on every block heartbeat', () => {
   const v = VENUES.perpl;
-  assert.deepEqual(venueSymbols(v, ['BTC', 'MON']).map(v.sym), ['1', '10', 'USDT']);
-  assert.deepEqual(v.subs(['1', '10', 'USDT']), [{ mt: 5, subs: ['heartbeat@143', 'order-book@1', 'order-book@10'].map((stream) => ({ stream, subscribe: true })) }]);
+  assert.deepEqual(venueSymbols(v, ['BTC', 'MON']).map(v.sym), ['16', '64', 'USDT']);
+  assert.deepEqual(v.subs(['16', '64', 'USDT']), [{ mt: 5, subs: ['heartbeat@10143', 'order-book@16', 'order-book@64'].map((stream) => ({ stream, subscribe: true })) }]);
   assert.deepEqual(v.parse({ mt: 15, sid: 7, bid: [{ p: 829199, s: 1, o: 1 }], ask: [{ p: 829200, s: 1, o: 1 }] }), []);   // sid not yet known
-  v.parse({ mt: 6, subs: [{ stream: 'order-book@1', sid: 7 }, { stream: 'order-book@10', sid: 8 }] });
-  assert.deepEqual(v.parse({ mt: 15, sid: 7, bid: [{ p: 829199, s: 1, o: 1 }, { p: 829190, s: 2, o: 1 }], ask: [{ p: 829200, s: 1, o: 2 }] }), [['1', '82919.9', '82920.0']]);
-  assert.deepEqual(v.parse({ mt: 16, sid: 7, bid: [{ p: 829199, s: 0, o: 0 }], ask: [] }), [['1', '82919.0', '82920.0']]);   // best bid removed
-  assert.deepEqual(v.parse({ mt: 15, sid: 8, bid: [{ p: 24633, s: 5, o: 1 }], ask: [{ p: 24650, s: 5, o: 1 }] }), [['10', '0.024633', '0.024650']]);
-  assert.deepEqual(v.parse({ mt: 100, sn: 1, h: 2 }), [['1', '82919.0', '82920.0'], ['10', '0.024633', '0.024650']]);
+  v.parse({ mt: 6, subs: [{ stream: 'order-book@16', sid: 7 }, { stream: 'order-book@64', sid: 8 }] });
+  assert.deepEqual(v.parse({ mt: 15, sid: 7, bid: [{ p: 829199, s: 1, o: 1 }, { p: 829190, s: 2, o: 1 }], ask: [{ p: 829200, s: 1, o: 2 }] }), [['16', '82919.9', '82920.0']]);
+  assert.deepEqual(v.parse({ mt: 16, sid: 7, bid: [{ p: 829199, s: 0, o: 0 }], ask: [] }), [['16', '82919.0', '82920.0']]);   // best bid removed
+  assert.deepEqual(v.parse({ mt: 15, sid: 8, bid: [{ p: 2462, s: 5, o: 1 }], ask: [{ p: 2463, s: 5, o: 1 }] }), [['64', '0.02462', '0.02463']]);
+  assert.deepEqual(v.parse({ mt: 100, sn: 1, h: 2 }), [['16', '82919.0', '82920.0'], ['64', '0.02462', '0.02463']]);
+});
+
+test('per-asset quorum: MON ticks on 3 fresh venues while BTC still needs 4', () => {
+  const ix = new HexitIndex(cfg({ assets: ['BTC', 'MON'], venues: ['a', 'b', 'c', 'd'].map((name) => ({ name, quote: 'USD' as const })), minVenues: 4, minVenuesFor: { MON: 3 } }));
+  for (const v of ['a', 'b', 'c']) { ix.push({ e: 'q', v, s: 'BTC', b: '100', a: '100.01', r: 1 }); ix.push({ e: 'q', v, s: 'MON', b: '0.02', a: '0.02', r: 1 }); }
+  const [btc, mon] = ix.sampleAt(100);
+  assert.equal(btc.kind, 'gap');
+  assert.equal(mon.kind, 'tick');
 });
 
