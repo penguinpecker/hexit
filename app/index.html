@@ -372,7 +372,7 @@ input[type=range]{accent-color:var(--tertiary-c);width:120px}
    its transaction changes, so no board frame pays. Phone: under the top pills and the toast, clear of the lock zone (left)
    and the stake/balance pills (bottom). The cards sit over live tiles, so taps go through them to the board; only the hash
    line is the explorer link (E2E #2), the feed's phone ticker included (review #1). Feed tones: ENTRY ice blue,
-   BOOM magenta with the payout in amber, REFUND and NO HIT muted (never green). */
+   BOOM magenta with the payout in amber, REFUND and NO HIT muted, PERPL (Perpl's on-chain trades) lavender (never green). */
 .txframe{position:fixed;inset:0;z-index:1;pointer-events:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .txs{--ch:59px;--gap:6px;position:absolute;top:150px;right:8px;width:196px}
@@ -406,6 +406,7 @@ input[type=range]{accent-color:var(--tertiary-c);width:120px}
   clip-path:polygon(0 0,calc(100% - 3px) 0,100% 3px,100% 100%,3px 100%,0 calc(100% - 3px))}
 .tx[data-tone=win] .bd{background:var(--tertiary-c);color:#2a0033}
 .tx[data-tone=void] .bd,.tx[data-tone=loss] .bd{background:rgba(193,199,211,.12);color:var(--on-var)}
+.tx.feed[data-tone=perpl]{background:rgba(208,188,255,.45)} .tx[data-tone=perpl] .bd{background:var(--secondary);color:#2a0a5e} .tx[data-tone=perpl] .r2 .t{color:var(--secondary)}
 .tx .tm{position:absolute;top:7px;right:10px;font-family:var(--f-head);font-weight:700;font-size:9.5px;line-height:12px;letter-spacing:.04em;color:var(--outline);font-variant-numeric:tabular-nums}
 .tx .who{overflow:hidden;text-overflow:ellipsis;font-family:var(--f-body);font-weight:600;font-size:11px;letter-spacing:0;text-transform:none;color:var(--on)} .tx.you .who{color:var(--tertiary)}
 .tx[data-tone=win] .r2 .t{color:var(--amber)}   /* no glow: .r2 clips it into a muddy box */
@@ -1207,7 +1208,10 @@ input[type=range]{accent-color:var(--tertiary-c);width:120px}
 //  - HexitTx.feed(item) (chain.ts, SSE `activity`, checked by seams.ts activityOf): one card per entry and per player per
 //    settle transaction (feedKey), newest on top; the last 6 are kept, and they stay (a quiet board keeps its last real items,
 //    with their age). HexitTx.me(address): this wallet. Its item for a transaction one of its popups shows turns that popup
-//    into the feed card (dedupe by hash), whichever of the two came first.
+//    into the feed card (dedupe by hash), whichever of the two came first. Perpl's on-chain trades (SSE `perpl`, seams.ts
+//    perplOf) come through feed() too: one card each, never folded into a popup, the last 2 kept apart from the 6 (so at
+//    most 2 of the desktop's 4 slots), and on the phone never in the ticker over a Hexit item under 10 s old. A batch goes
+//    in by chain time (ts).
 // Cards are absolutely placed slots moved by transform and opacity only, never measured; feed items are applied in one batch
 // every 250 ms, outside the board's frame. Desktop: 4 slots, older ones receding. Phone: the popups plus the newest item as a
 // ticker with the next two peeking under it, within the popups' 4 slots. Only the hash line links to the explorer, the rest
@@ -1215,7 +1219,7 @@ input[type=range]{accent-color:var(--tertiary-c);width:120px}
 // in with textContent only; a hash only if 0x + 64 hex.
 window.HexitTx = (() => {
   const box = document.getElementById('txs'), say = document.getElementById('txSay'), cards = new Map(), seen = new Set();
-  const MAX = 4, LIFE = 5000, KEEP = 6, FADE = [1, .9, .78, .66], TX_URL = 'https://testnet.monadvision.com/tx/', HASH = /^0x[0-9a-fA-F]{64}$/;
+  const MAX = 4, LIFE = 5000, KEEP = 6, PKEEP = 2, HOLD = 10000, FADE = [1, .9, .78, .66], TX_URL = 'https://testnet.monadvision.com/tx/', HASH = /^0x[0-9a-fA-F]{64}$/;
   const KIND = {bet:'Bet', settle:'Settle', grant:'Grant', deposit:'Deposit', withdraw:'Withdraw'}, ST = {pending:'Pending', confirmed:'Confirmed', failed:'Failed'};
   const OWN = '<span class="r1"><i></i><span><span class="k"></span> // <b></b></span></span><span class="r2"><span class="t"></span> <small></small></span><a class="h" target="_blank" rel="noopener noreferrer"></a>';
   const FEED = '<span class="r1"><b class="bd"></b><span class="who"></span></span><span class="r2"><span class="t"></span> <small></small></span><a class="h" target="_blank" rel="noopener noreferrer"></a><span class="tm"></span>';
@@ -1232,7 +1236,7 @@ window.HexitTx = (() => {
   // a popup becoming its transaction's feed card: no auto-close, and its place in the feed is now
   const adopt = c => { clearTimeout(c.t); c.t = 0; c.seq = ++seq; };
   function paintFeed(c) {
-    const v = C().feedView(c.items, me), el = c.el, q = s => el.querySelector(s);
+    const v = c.items[0].kind === 'perpl' ? C().perplView(c.items[0]) : C().feedView(c.items, me), el = c.el, q = s => el.querySelector(s);
     if (!el.classList.contains('feed')) { el.innerHTML = FEED; el.classList.add('feed'); delete el.dataset.st; }
     el.dataset.tone = v.tone; el.classList.toggle('you', v.you);
     q('.bd').textContent = v.badge; q('.who').textContent = v.who; q('.t').textContent = v.title; q('small').textContent = v.sub;
@@ -1240,12 +1244,18 @@ window.HexitTx = (() => {
   // slots: the popups first (newest on top), then the feed; a card pushed out of view keeps sliding down to its place in
   // the whole list while it fades (kept for the phone list), so a burst reads as one shift down, not cards swapping in place
   function place() {
-    const own = [], feed = [], bySeq = (a, b) => b.seq - a.seq;
+    const own = [], bySeq = (a, b) => b.seq - a.seq, pp = c => c.items[0].kind === 'perpl';
+    let feed = [], nh = 0, np = 0;
     for (const c of cards.values()) (c.items.length ? feed : own).push(c);
-    own.sort(bySeq); feed.sort(bySeq); for (const c of feed.splice(KEEP)) drop(c, true);
+    // Perpl trades every few seconds while Hexit play can be quiet for hours: Perpl keeps its own PKEEP cards, so it never
+    // pushes a player's entry or vault payout out of the stack (review: all 6 kept cards were Perpl on connect)
+    own.sort(bySeq); feed = feed.sort(bySeq).filter(c => (pp(c) ? ++np <= PKEEP : ++nh <= KEEP) || drop(c, true));
+    const desk = DESK.matches, h = feed.find(c => !pp(c));
+    // phone: a Hexit item under HOLD ms old (chain time) keeps the ticker over newer Perpl trades
+    if (!desk && h && h !== feed[0] && clock() - h.ts < HOLD) feed = [h, ...feed.filter(c => c !== h)];
     // phone: the ticker never goes below the MAX slots the popups alone fill (under 4 popups it sat on the tiles just above
     // the price line, the ones tapped most: review #1); with 4 popups it waits
-    const all = own.concat(feed), desk = DESK.matches, tick = !desk && own.length < MAX;
+    const all = own.concat(feed), tick = !desk && own.length < MAX;
     const list = desk ? all.slice(0, 4) : own.concat(feed.slice(0, tick ? 1 : 0)), peek = tick ? feed.slice(1, 3) : [];
     all.forEach((c, n) => {   // --o: the words' opacity (older ones recede; the card stays opaque over the tiles), --co: the card's
       const i = list.indexOf(c), p = peek.indexOf(c), s = c.el.style;
@@ -1266,7 +1276,7 @@ window.HexitTx = (() => {
     if (!ST[d.status]) d.status = 'pending';
     const ok = HASH.test(d.hash);
     if (ok && d.hash !== hadHash && me && !c.items.length)   // this wallet's feed item for the hash came first: it folds in here
-      for (const f of [...cards.values()]) if (!f.own && f.items[0].tx === d.hash.toLowerCase() && f.items[0].player.toLowerCase() === me) { if (!c.items.length) adopt(c); c.items.push(...f.items); drop(f, true); }
+      for (const f of [...cards.values()]) if (!f.own && f.items[0].kind !== 'perpl' && f.items[0].tx === d.hash.toLowerCase() && f.items[0].player.toLowerCase() === me) { if (!c.items.length) adopt(c); c.items.push(...f.items); drop(f, true); }
     if (c.items.length) { paintFeed(c); return place(); }   // the feed card for its transaction now: it stays as the feed does
     const el = c.el, q = s => el.querySelector(s);
     el.dataset.st = d.status; q('.k').textContent = KIND[d.kind] || 'Tx'; q('b').textContent = ST[d.status];
@@ -1278,9 +1288,9 @@ window.HexitTx = (() => {
   }
   function flush() {
     flushT = 0; const q = queue, hit = new Set(); queue = [];
-    for (const a of q) {
+    for (const a of q.sort((x, y) => x.ts - y.ts)) {   // two sources in one batch (a connect's backfills): the newest by chain time end on top
       if (seen.has(a.id)) continue; seen.add(a.id);   // the stream resends the latest 30 on every reconnect
-      const mine = !!me && a.player.toLowerCase() === me, key = C().feedKey(a);
+      const pp = a.kind === 'perpl', mine = !pp && !!me && a.player.toLowerCase() === me, key = pp ? a.id : C().feedKey(a);
       let c = mine && [...cards.values()].find(x => x.own && x.d.hash.toLowerCase() === a.tx) || cards.get(key);
       if (!c) c = make(key, false);
       if (!c.items.length) adopt(c);

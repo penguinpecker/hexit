@@ -8,7 +8,7 @@
 import { gameDomain, usdcDomain, signBet, signWithdraw, signDeposit } from '@hexit/monad';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';   // the same viem copy @hexit/monad bundles (build.mjs nodePaths)
 import { firstOpenColumn } from '@hexit/pricing';
-import { jOf, multAt, overPayout, nonceUsed, freeNonce, balanceMicro, mergeHistory, boardGeom, activityOf, feedKey, feedView, ago, type QuotedColumn } from './seams.ts';
+import { jOf, multAt, overPayout, nonceUsed, freeNonce, balanceMicro, mergeHistory, boardGeom, activityOf, feedKey, feedView, ago, perplOf, perplView, type QuotedColumn } from './seams.ts';
 
 declare const __HEXIT_API__: string;
 const API = __HEXIT_API__;   // set by build.mjs from HEXIT_API (default: the Railway services; HEXIT_API=http://localhost:8788 for a local stack)
@@ -38,6 +38,7 @@ const base = (asset: number) => cfg?.markets.find((m) => m.asset === asset)?.sym
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const pop = (o: Record<string, unknown>) => (globalThis as any).HexitTx?.show(o);
 const act = (m: unknown) => { const a = activityOf(m); if (a) (globalThis as any).HexitTx?.feed(a); };   // the live feed: every player's real txs
+const trade = (m: unknown) => { const p = perplOf(m); if (p) (globalThis as any).HexitTx?.feed(p); };   // and Perpl's on-chain trades (BTC, MON)
 const usd = (micro: number) => '$' + (micro / 1e6).toFixed(2);
 const stakeStr = (micro: number) => micro < 1e6 ? usd(micro) : '$' + +(micro / 1e6).toFixed(2);   // $0.10, $1: index.html fmtStake
 const tapeNow = () => lastTs || Date.now();   // the newest tick's time (any market): the server's clock, whatever this device's says
@@ -200,6 +201,7 @@ function watch(h: Handlers) {
     if (t === 'quotes') setQuotes(a, m);
     if (t === 'touch') h.onEvent('HexTouched', { asset: a, k: +m.k, j: +m.j, ts_ms: +(m.tsMs ?? m.ts) });   // at settle time now (DECISIONS)
     if (t === 'activity') return act(m);   // the stream sends the latest 30 on connect (backfill: true), then each final one
+    if (t === 'perpl') return trade(m);   // the newest 20 Perpl trades on connect (backfill: true), then each new one
     if (t !== 'bet' && t !== 'settled') return;
     const who = String(m.player ?? m.owner).toLowerCase(), ev = { asset: a, k: +m.k, j: +m.j, stake: +m.stake, mult: +m.mult, outcome: +m.outcome, credited: +m.credited };
     if (who !== myAddr) { if (t === 'bet') h.onOther?.({ ...ev, owner: String(m.player ?? m.owner) }); return; }   // checksummed, as the API sends it (SPEC-MONAD §6)
@@ -212,27 +214,30 @@ function watch(h: Handlers) {
   const open = () => {
     const es = new EventSource(API + '/stream');
     es.onmessage = on;   // {t: ...} on unnamed events; named events (event: ticks) reach the listeners below instead
-    for (const t of ['hello', 'ticks', 'quotes', 'touch', 'bet', 'settled', 'activity']) es.addEventListener(t, on as EventListener);
+    for (const t of ['hello', 'ticks', 'quotes', 'touch', 'bet', 'settled', 'activity', 'perpl']) es.addEventListener(t, on as EventListener);
     es.onerror = () => { if (es.readyState === EventSource.CLOSED) { recent(); setTimeout(open, 3000); } };
   };
   open();
 }
-// while the stream is down (an HTTP error: it reopens every 3 s), the feed's latest items from GET /activity (newest first),
-// at most every 15 s; the feed drops the ones it has (by id)
+// while the stream is down (an HTTP error: it reopens every 3 s), the feed's latest items from GET /activity and GET /perpl
+// (newest first), at most every 15 s; the feed drops the ones it has (by id)
 let recentAt = 0;
 function recent() {
   if (Date.now() - recentAt < 15_000) return;
   recentAt = Date.now();
   api('/activity?limit=30').then((r) => { for (const m of [...(r.items ?? [])].reverse()) act({ ...m, backfill: true }); }, () => {});
+  api('/perpl?limit=20').then((r) => { for (const m of [...(r.items ?? [])].reverse()) trade({ ...m, backfill: true }); }, () => {});
 }
 
-// one popup per settle transaction (one column of one market), summing this wallet's bets in it
-const settles = new Map<string, { n: number; net: number; credited: number }>();   // ponytail: one entry per settle tx this session
+// one popup per settle transaction (one column of one market), summing this wallet's bets in it; a win says what the vault
+// (HexitGame's house funds) paid, as the feed card it turns into does (seams.ts feedView)
+const settles = new Map<string, { n: number; net: number; credited: number; won: boolean }>();   // ponytail: one entry per settle tx this session
 function settlePopup(m: any) {
-  const s = settles.get(m.hash) ?? { n: 0, net: 0, credited: 0 }, o = +m.outcome;
+  const s = settles.get(m.hash) ?? { n: 0, net: 0, credited: 0, won: false }, o = +m.outcome;
   settles.set(m.hash, s);
-  s.n++; s.net += +m.credited - +m.stake; s.credited += +m.credited;
-  const one = o === 1 ? 'Boom' : o === 3 ? 'Refunded' : 'Dud', amt = s.n === 1 && o === 3 ? usd(s.credited) : (s.net > 0 ? '+' : s.net < 0 ? '−' : '') + usd(Math.abs(s.net));
+  s.n++; s.net += +m.credited - +m.stake; s.credited += +m.credited; s.won ||= o === 1;
+  const one = o === 1 ? 'Boom' : o === 3 ? 'Refunded' : 'Dud', amt = s.won ? usd(s.credited) + ' paid from vault'
+    : s.n === 1 && o === 3 ? usd(s.credited) : (s.net > 0 ? '+' : s.net < 0 ? '−' : '') + usd(Math.abs(s.net));
   const mk = base(+m.asset);
   pop({ id: 'settle' + m.hash, kind: 'settle', status: 'confirmed', hash: m.hash, title: (mk ? mk + ' · ' : '') + (s.n > 1 ? `${s.n} bets settled` : one), detail: amt });
 }
@@ -275,7 +280,7 @@ const fresh = (asset: number, k: number) => { const q = quotes.get(asset)?.get(k
 const row = (asset: number) => rows.get(asset) ?? 0;
 (globalThis as Record<string, unknown>).HexitChain = {
   init, onboard, returning, start, watch, placeBet, requestWithdraw, fund, walletMicro, balanceMicro, nonceUsed, mergeHistory, boardGeom,
-  feedKey, feedView, ago,   // the live feed's cards (index.html HexitTx)
+  feedKey, feedView, perplView, ago,   // the live feed's cards (index.html HexitTx)
   address: () => wallet().address,
   player: () => api('/player/' + wallet().address),   // {wallet, credit, openStake, ...} micro-USDC strings
   leaderboard: (period: string) => api('/leaderboard?period=' + encodeURIComponent(period)),   // daily | weekly | all

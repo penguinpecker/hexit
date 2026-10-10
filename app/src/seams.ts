@@ -139,8 +139,28 @@ export function feedView(items: Activity[], me = '') {
   const tone = a.kind === 'entry' ? 'entry' : items.some((x) => x.outcome === 1) ? 'win' : items.every((x) => x.outcome === 3) ? 'void' : 'loss';
   const bet = items.length > 1 ? `${items.length} bets · ${stakeTxt(stake)}` : `${stakeTxt(stake)} @ ${multTxt(a.mult)}`, paid = tone === 'win' || tone === 'void';
   return { tone, badge: { entry: 'Entry', win: 'Boom', void: 'Refund', loss: 'No hit' }[tone], title: paid ? usd2(payout) : bet,
-    who: you ? 'You' : a.handle, sub: [paid ? bet : '', a.symbol].filter(Boolean).join(' · '), you, hash: a.tx.slice(0, 6) + '…' + a.tx.slice(-4) };
+    who: you ? 'You' : a.handle, sub: [tone === 'win' ? 'paid from vault' : '', paid ? bet : '', a.symbol].filter(Boolean).join(' · '),   // a win: settleColumn credits it from HexitGame's house funds
+    you, hash: a.tx.slice(0, 6) + '…' + a.tx.slice(-4) };
 }
+/** A Perpl trade (the API's SSE `perpl` event, or a row of GET /perpl): one fill on Perpl's Monad testnet order books, tx =
+ *  its Monad testnet transaction. price and notional in USD, size in the market's base units, all decimal strings; ts in ms. */
+export interface PerplTrade { id: string; kind: 'perpl'; tx: string; ts: number; symbol: string; side: 'buy' | 'sell'; price: string; size: string;
+  notional: string; backfill: boolean }
+/** Checks one trade field by field (it comes from the network): null when anything is off, which is then never shown. */
+export function perplOf(m: any): PerplTrade | null {
+  const tx = String(m?.tx ?? ''), dec = (v: unknown) => typeof v === 'string' && /^\d{1,15}(\.\d{1,18})?$/.test(v), ts = Number(m?.ts);
+  const l = /^(0x[0-9a-fA-F]{64}):(\d{1,6})$/.exec(String(m?.id ?? ''));   // id = tx:log index, the card's key
+  if (m?.kind !== 'perpl' || !/^0x[0-9a-fA-F]{64}$/.test(tx) || l?.[1].toLowerCase() !== tx.toLowerCase() || !/^[A-Z0-9]{2,10}\/USD$/.test(m.symbol)
+    || (m.side !== 'buy' && m.side !== 'sell') || !dec(m.price) || !dec(m.size) || !dec(m.notional)) return null;
+  return { id: `${tx.toLowerCase()}:${l![2]}`, kind: 'perpl', tx: tx.toLowerCase(), ts: Number.isFinite(ts) && ts > 0 ? ts : Date.now(), symbol: m.symbol,
+    side: m.side, price: m.price, size: m.size, notional: m.notional, backfill: m.backfill === true };
+}
+const grouped = (d: string) => d.replace(/^\d+/, (i) => i.replace(/\B(?=(\d{3})+$)/g, ','));   // 83051.5 -> 83,051.5, the digits as sent
+/** What a Perpl card says, in the feed card's places: badge, the market and side (who), the notional (title), then the
+ *  price and size (sub). */
+export const perplView = (p: PerplTrade) => ({ tone: 'perpl', badge: 'Perpl', who: `${p.symbol} · ${p.side.toUpperCase()}`,
+  title: '$' + grouped(Number(p.notional).toFixed(2)), sub: `@ $${grouped(p.price)} · ${grouped(p.size)} ${p.symbol.split('/')[0]}`, you: false,
+  hash: p.tx.slice(0, 6) + '…' + p.tx.slice(-4) });
 /** How long ago, as the feed says it: now, 12s, 3m, 2h, 4d. */
 export const ago = (ms: number): string => { const s = Math.max(0, Math.floor(ms / 1000));
   return s < 1 ? 'now' : s < 60 ? s + 's' : s < 3600 ? Math.floor(s / 60) + 'm' : s < 86400 ? Math.floor(s / 3600) + 'h' : Math.floor(s / 86400) + 'd'; };

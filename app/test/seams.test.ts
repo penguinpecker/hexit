@@ -1,7 +1,7 @@
 // node --test test/seams.test.ts : the pure seam helpers the app's board relies on.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { jOf, multAt, overPayout, nonceUsed, freeNonce, balanceMicro, mergeHistory, boardGeom, marketOf, activityOf, feedKey, feedView, ago, type Tap, type OpenBet, type History } from '../src/seams.ts';
+import { jOf, multAt, overPayout, nonceUsed, freeNonce, balanceMicro, mergeHistory, boardGeom, marketOf, activityOf, feedKey, feedView, ago, perplOf, perplView, type Tap, type OpenBet, type History } from '../src/seams.ts';
 
 const ROW = 0.05;
 
@@ -149,15 +149,32 @@ test('live feed: only well-formed real items show; one card per entry and per pl
   assert.equal(feedView([e], P.toLowerCase()).who, 'You');
   const s = (o: number, payout: string, id: string, player = P) => activityOf({ ...ok, id, player, kind: 'settle', outcome: o, credited: payout, payout })!;
   const win = s(1, '2400000', 'a'), loss = s(2, '0', 'b'), refund = s(3, '1000000', 'c');
-  assert.deepEqual([feedView([win]).tone, feedView([win]).title, feedView([win]).sub], ['win', '$2.40', '$1 @ 2.40x · BTC/USD']);
+  assert.deepEqual([feedView([win]).tone, feedView([win]).title, feedView([win]).sub], ['win', '$2.40', 'paid from vault · $1 @ 2.40x · BTC/USD']);
+  assert.equal(feedView([win], P.toLowerCase()).sub, 'paid from vault · $1 @ 2.40x · BTC/USD');   // "You" alike
   assert.equal(feedView([e]).sub, 'BTC/USD');
   assert.deepEqual([feedView([refund]).badge, feedView([refund]).title], ['Refund', '$1.00']);
   assert.deepEqual([feedView([loss]).badge, feedView([loss]).title, activityOf({ ...ok, kind: 'settle', outcome: 2, payout: '5' })!.payout], ['No hit', '$1 @ 2.40x', 0]);
   assert.equal(feedKey(win), feedKey(loss));   // same player, same settle tx: one card
   assert.notEqual(feedKey(win), feedKey(s(1, '1', 'd', Q)));
   assert.notEqual(feedKey(e), feedKey(activityOf({ ...ok, id: tx + ':4' })!));
-  assert.deepEqual([feedView([win, loss]).tone, feedView([win, loss]).title, feedView([win, loss]).sub], ['win', '$2.40', '2 bets · $2 · BTC/USD']);
-  assert.equal(feedView([win, activityOf({ ...ok, id: 'e', kind: 'settle', outcome: 2, stake: '500000' })!]).sub, '2 bets · $1.50 · BTC/USD');
+  assert.deepEqual([feedView([win, loss]).tone, feedView([win, loss]).title, feedView([win, loss]).sub], ['win', '$2.40', 'paid from vault · 2 bets · $2 · BTC/USD']);
+  assert.equal(feedView([win, activityOf({ ...ok, id: 'e', kind: 'settle', outcome: 2, stake: '500000' })!]).sub, 'paid from vault · 2 bets · $1.50 · BTC/USD');
   assert.equal(feedView([refund, loss]).tone, 'loss');
+  assert.equal(feedView([refund]).sub, '$1 @ 2.40x · BTC/USD');   // a refund is the stake back, not a vault payout
   assert.deepEqual([0, 999, 1000, 59_999, 60_000, 7_200_000, 90_000_000, -5].map(ago), ['now', 'now', '1s', '59s', '1m', '2h', '1d', 'now']);
+});
+
+test('perpl trades: only well-formed items show, linked only by a 0x + 64 hex hash; what each card says', () => {
+  const tx = '0x' + 'Cd'.repeat(32), ok = { id: tx + ':0', kind: 'perpl', tx, block: 69906380, ts: 1791659806000, asset: 1, symbol: 'BTC/USD', side: 'buy',
+    price: '83051.5', size: '0.00978', notional: '812.24' };
+  const p = perplOf(ok)!;
+  assert.deepEqual([p.id, p.tx, p.ts, p.backfill], [tx.toLowerCase() + ':0', tx.toLowerCase(), 1791659806000, false]);
+  for (const bad of [{ ...ok, tx: tx.slice(2) }, { ...ok, tx: tx + '0' }, { ...ok, id: undefined }, { ...ok, id: 'x'.repeat(80) }, { ...ok, id: '0x' + 'ab'.repeat(32) + ':0' }, { ...ok, id: tx + ':1x' }, { ...ok, kind: 'entry' }, { ...ok, side: 'long' }, { ...ok, price: '1e5' }, { ...ok, price: 83051.5 },
+    { ...ok, size: '-1' }, { ...ok, notional: '<b>1</b>' }, { ...ok, symbol: 'evil' }, { ...ok, symbol: undefined }, null])
+    assert.equal(perplOf(bad), null, JSON.stringify(bad));
+  assert.equal(perplOf({ ...ok, ts: 'x', backfill: true })!.backfill, true);
+  const v = perplView(p);
+  assert.deepEqual([v.tone, v.badge, v.who, v.title, v.sub, v.you], ['perpl', 'Perpl', 'BTC/USD · BUY', '$812.24', '@ $83,051.5 · 0.00978 BTC', false]);
+  const mon = perplView(perplOf({ ...ok, symbol: 'MON/USD', side: 'sell', price: '0.02477', size: '41200', notional: '1020.5' })!);
+  assert.deepEqual([mon.who, mon.title, mon.sub], ['MON/USD · SELL', '$1,020.50', '@ $0.02477 · 41,200 MON']);
 });

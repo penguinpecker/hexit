@@ -31,20 +31,23 @@ export function fromEvent(e: GameEvent, at: Date, symbols: ReadonlyMap<number, s
     ts: at.getTime(), player: a.player, asset: Number(a.asset), k: Number(a.k), j: a.j, stake: a.stake, mult: a.mult, outcome: a.outcome, credited: a.credited }, symbols);
 }
 
-const logOf = (a: Activity) => Number(a.id.slice(a.id.indexOf(':') + 1));
-const before = (a: Activity, b: Activity) => a.block < b.block || (a.block === b.block && logOf(a) < logOf(b));
+type Ordered = { id: string; block: number; asset: number };
+const logOf = (a: Ordered) => Number(a.id.slice(a.id.indexOf(':') + 1));
+const chainOrder = (a: Ordered, b: Ordered) => a.block < b.block || (a.block === b.block && logOf(a) < logOf(b));
 
-/** The newest `max` items in chain order (block, log index), each id once. add() is false for an id already kept or
- *  an item older than all `max` kept, so whoever broadcasts on true never sends one twice. */
-export class ActivityRing {
-  items: Activity[] = [];
+/** The newest `max` items in chain order (`before`; default block, log index), each id once; ties keep arrival order.
+ *  add() is false for an id already kept or an item older than all `max` kept, so whoever broadcasts on true never
+ *  sends one twice. Also holds the Perpl trades (main.ts). */
+export class ActivityRing<T extends Ordered = Activity> {
+  items: T[] = [];
   max: number;
+  before: (a: T, b: T) => boolean;
   ids = new Set<string>();
-  constructor(max = 200) { this.max = max; }
-  add(a: Activity): boolean {
+  constructor(max = 200, before: (a: T, b: T) => boolean = chainOrder) { this.max = max; this.before = before; }
+  add(a: T): boolean {
     if (this.ids.has(a.id)) return false;
     let i = this.items.length;
-    while (i > 0 && before(a, this.items[i - 1])) i--;
+    while (i > 0 && this.before(a, this.items[i - 1])) i--;
     if (i === 0 && this.items.length >= this.max) return false;
     this.items.splice(i, 0, a);
     this.ids.add(a.id);
@@ -52,7 +55,7 @@ export class ActivityRing {
     return true;
   }
   /** The newest n of these markets (all when only is null), newest first. */
-  latest(n: number, only: ReadonlySet<number> | null = null): Activity[] {
+  latest(n: number, only: ReadonlySet<number> | null = null): T[] {
     return (only ? this.items.filter((a) => only.has(a.asset)) : this.items).slice(-n).reverse();
   }
 }

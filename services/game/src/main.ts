@@ -14,7 +14,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { getBalance, getTransactionReceipt, readContract } from 'viem/actions';
 import { decodeGameLogs, gameDomain, hexitGameAbi, monadTestnet, parseDeployment, signTape, tHi, type Deployment } from '@hexit/monad';
 import { ASSET_ID, HexitIndex, type Asset } from './feed/index.ts';
-import { connect, VENUES } from './feed/sources.ts';
+import { connect, perplTrades, VENUES, type PerplTrade } from './feed/sources.ts';
 import { clockGate, DEFAULTS, indexConfig, loadConfig, runGrid } from './feed/grid.ts';
 import { activityRows, loadTicks, migrate, openDb, prune, serviceTx, startWriter, type Queue } from './db.ts';
 import { makeSender, type Sent, type TxStatus } from './sender.ts';
@@ -145,12 +145,16 @@ const activity = new ActivityRing(200), symbols = new Map(markets.map((m) => [m.
 const seeded = db ? activityRows(db, [...symbols.keys()], activity.max)
   .then((rows) => seedActivity(activity, rows, symbols, async (tx) => decodeGameLogs((await getTransactionReceipt(read, { hash: tx })).logs, d.game), log))
   .then((n) => log('activity', `${n} items from Postgres`), (e) => log('db-error', `activity: ${(e as Error).message}`)) : null;
+// Perpl testnet's on-chain trades (owner, 2026-10-11), from the Perpl venue's connection: the newest 50 for GET /perpl and
+// the stream's 'perpl' event. l counts logs inside one transaction, so the ring orders by block alone and keeps Perpl's
+// (chain) order within a block. A resubscribe's snapshot goes out as backfill.
+const perpl = new ActivityRing<PerplTrade>(50, (a, b) => a.block < b.block);
 
 // ---------------------------------------------------------------- services
 let ix: ReturnType<typeof startIndexer>, keeper: ReturnType<typeof startKeeper> | undefined;
 const mon: Record<string, string> = {};   // MON balances, read every 30 s
 const port = Number(process.env.PORT ?? 8788);
-const api = startApi({ d, read, relayer, txs, granted: () => ix.granted, tapes, decided: () => ix.decided, markets, db, activity, log, reject,
+const api = startApi({ d, read, relayer, txs, granted: () => ix.granted, tapes, decided: () => ix.decided, markets, db, activity, perpl, log, reject,
   port, host: process.env.PORT ? '0.0.0.0' : '127.0.0.1',
   origins: env('HEXIT_CORS_ORIGINS', 'https://hexit-app.vercel.app').split(',').map((s) => s.trim()).filter(Boolean),
   health: () => ({ chainId: d.chainId, game: d.game, keeperAt: keeper?.at() ?? 0, ...ix.status(),
@@ -182,6 +186,7 @@ for (const m of markets) m.quoter = startQuoter({ account: quoterKey, domain: do
   quoteMaxAgeMs: d.params.quoteMaxAgeMs, last: () => m.ring.last(), log, publish: (msg) => { m.quotes = msg; quotes++; api.broadcast(msg); } });
 // ---------------------------------------------------------------- the index on its grid (clock gate 'none' by default: no chrony on the host)
 const idx = new HexitIndex(indexConfig(cfg)), clock = clockGate(cfg.clock, (m) => log('clock', m)), bySym = new Map(markets.map((m) => [m.sym, m]));
+perplTrades.add((ts, snapshot) => { for (const t of ts) if (perpl.add(t)) api.broadcast(snapshot ? { ...t, backfill: true } : t, 'perpl'); });
 const conns = cfg.venues.map((v) => connect(VENUES[v], cfg.assets, (ev) => idx.push(ev), (m) => log(`venue-${v}`, m)));
 const grid = runGrid((t) => {
   for (const s of idx.sampleAt(t)) {

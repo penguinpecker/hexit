@@ -124,7 +124,7 @@ hexit/
 BTC/USD and MON/USD market data comes from **[Perpl](https://perpl.xyz)** on **Monad testnet**, the same network the game runs on. Perpl is an on-chain order-book exchange on Monad.
 
 - **Markets:** Perpl's Monad testnet BTC (market 16) and MON (market 64) order books.
-- **Interface:** Perpl's public testnet market-data WebSocket (`wss://testnet.perpl.xyz/ws/v1/market-data`): one subscription for the two order books and the block heartbeat. No API key is needed.
+- **Interface:** Perpl's public testnet market-data WebSocket (`wss://testnet.perpl.xyz/ws/v1/market-data`): one subscribe frame for the block heartbeat and each market's order book and trades (5 subscriptions). No API key is needed.
 - **What is used:** the best bid and ask. The server keeps each book from Perpl's snapshots and updates, and re-reads the best bid and ask on every Monad block (about every 0.3 s), so a quiet book still counts as live.
 - **Into the game:** the price index samples it every 100 ms. That 100 ms tape is what the server signs and what the contract settles bets against.
 - **Where to look:** `services/game/src/feed/sources.ts` (the Perpl connection) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), section 5 (how the index combines its sources).
@@ -271,8 +271,8 @@ Install and test each package in this order, from the repository root. `packages
 (cd contracts && npm ci && forge test)               # 86 tests, about 20 s; npm run validate checks upgrade safety
 (cd packages/pricing && npm ci && npm test)          # 15 tests
 (cd packages/monad && npm ci && npm test)            # 4 tests (one runs every signed message on a local anvil)
-(cd services/game && npm ci && npm test)             # 24 tests; npm run typecheck type-checks
-(cd app && npm ci && npm test && node build.mjs)     # 9 tests; the build goes to app/dist
+(cd services/game && npm ci && npm test)             # 28 tests; npm run typecheck type-checks
+(cd app && npm ci && npm test && node build.mjs)     # 10 tests; the build goes to app/dist
 ```
 
 Notes:

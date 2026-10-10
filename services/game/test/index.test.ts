@@ -157,7 +157,8 @@ test('defaults: BTC and MON on six exchanges plus Perpl; quorum 4 meets the floo
 test('perpl: book from snapshot + updates, best bid/ask in dollars, re-sent on every block heartbeat', () => {
   const v = VENUES.perpl;
   assert.deepEqual(venueSymbols(v, ['BTC', 'MON']).map(v.sym), ['16', '64', 'USDT']);
-  assert.deepEqual(v.subs(['16', '64', 'USDT']), [{ mt: 5, subs: ['heartbeat@10143', 'order-book@16', 'order-book@64'].map((stream) => ({ stream, subscribe: true })) }]);
+  assert.deepEqual(v.subs(['16', '64', 'USDT']), [{ mt: 5, subs: ['heartbeat@10143', 'order-book@16', 'order-book@64', 'trades@16', 'trades@64']
+    .map((stream) => ({ stream, subscribe: true })) }]);   // one frame, 5 subscriptions (Perpl: 16 per connection)
   assert.deepEqual(v.parse({ mt: 15, sid: 7, bid: [{ p: 829199, s: 1, o: 1 }], ask: [{ p: 829200, s: 1, o: 1 }] }), []);   // sid not yet known
   v.parse({ mt: 6, subs: [{ stream: 'order-book@16', sid: 7 }, { stream: 'order-book@64', sid: 8 }] });
   assert.deepEqual(v.parse({ mt: 15, sid: 7, bid: [{ p: 829199, s: 1, o: 1 }, { p: 829190, s: 2, o: 1 }], ask: [{ p: 829200, s: 1, o: 2 }] }), [['16', '82919.9', '82920.0']]);

@@ -1,7 +1,8 @@
 // API (DECISIONS.md, SPEC-MONAD §5.3, app/src/chain.ts): config, the SSE /stream of ticks + signed quotes + game events,
 // the relayer (onboard grant, bets, withdrawals, deposits: checked locally, simulated, then sent by the relayer key, so
 // players need 0 MON and a predictable revert is never paid for), transaction status, player and leaderboard reads,
-// the Postgres history and the activity feed (GET /activity, SSE event "activity"). JSON bodies; uint64 fields as
+// the Postgres history, the activity feed (GET /activity, SSE event "activity") and Perpl testnet's on-chain trades
+// (GET /perpl, SSE event "perpl"). JSON bodies; uint64 fields as
 // decimal strings. CORS for the web origin(s) and localhost.
 // Several markets at once (BTC/USD 1, MON/USD 3): every stream message, bet and tape names its asset; one credit
 // balance serves them all, so /player and the leaderboard are per wallet, not per market.
@@ -19,6 +20,7 @@ import type { SignedTape } from './keeper.ts';
 import type { TickRing } from './tape.ts';
 import type { QuoteMsg } from './quoter.ts';
 import type { ActivityRing } from './activity.ts';
+import type { PerplTrade } from './feed/sources.ts';
 
 /** A served market. main.ts keeps rowE8, maxMoveE8 and enabled current (HexitGame.markets(asset), then MarketSet) and
  *  quotes the newest signed board. symbol 'BTC/USD'; decimals: the price digits the app shows. */
@@ -89,6 +91,7 @@ export function openBets(openMask: number, words: readonly bigint[]) {
 /** tapes and decided are keyed by colKey(asset, k). */
 export function startApi(o: { d: Deployment; read: Client; relayer: Sender; txs: Map<Hex, TxStatus>; granted: () => ReadonlySet<string>;
   tapes: ReadonlyMap<number, SignedTape>; decided: () => ReadonlySet<number>; markets: readonly Market[]; db: Db | null; activity: ActivityRing;
+  perpl: ActivityRing<PerplTrade>;
   health: () => object; log: (cls: string, msg: string) => void; reject: (key: string) => void; port: number; host: string; origins: string[] }) {
   const { d, read, relayer, db, log } = o, dom = gameDomain(d.game, d.chainId), udom = usdcDomain(d.usdc, d.chainId);
   const minStake = BigInt(d.params.minStake), maxStake = BigInt(d.params.maxStake), origins = new Set(o.origins);
@@ -296,7 +299,7 @@ export function startApi(o: { d: Deployment; read: Client; relayer: Sender; txs:
 
   // ---------------------------------------------------------------- SSE /stream (?asset=1 or ?asset=1,3: those markets only)
   // Unnamed events carry {t: ...}; the activity feed is the named event "activity" (activity.ts), its newest 30 sent on
-  // connect with backfill: true, newest last.
+  // connect with backfill: true, newest last. Perpl's trades are the named event "perpl", its newest 20 likewise on connect.
   const clients = new Map<ServerResponse, ReadonlySet<number> | null>(), streams = new Map<string, number>();   // streams: per IP
   const line = (m: unknown, event?: string) => `${event ? `event: ${event}\n` : ''}data: ${JSON.stringify(m)}\n\n`;
   // Until the feed is whole (feedReady, main.ts: the indexer's first pass and the Postgres reload are in) no item goes out
@@ -338,6 +341,8 @@ export function startApi(o: { d: Deployment; read: Client; relayer: Sender; txs:
         if (path === '/health') return send(200, { ...o.health(), sse: clients.size });
         if (path === '/activity') { const n = parseInt(qs.get('limit') ?? '', 10);   // 30 when absent; 0 is 1, not the default
           return send(200, { items: o.activity.latest(Math.min(Math.max(Number.isNaN(n) ? 30 : n, 1), 100)) }); }
+        if (path === '/perpl') { const n = parseInt(qs.get('limit') ?? '', 10);   // 20 when absent, at most 50
+          return send(200, { items: o.perpl.latest(Math.min(Math.max(Number.isNaN(n) ? 20 : n, 1), 50)) }); }
         if (path === '/stream') {
           const want = qs.get('asset'), only = want === null ? null : new Set(want.split(',').map((x) => int(x, 0, 255, 'asset')));
           if (only && [...only].some((a) => !byAsset.has(a))) bad('bad asset');
@@ -346,6 +351,7 @@ export function startApi(o: { d: Deployment; read: Client; relayer: Sender; txs:
           res.write('retry: 2000\n\n');
           for (const m of o.markets) if (!only || only.has(m.asset))   // one hello per market: its last minute of ticks and its newest board
             res.write(line({ t: 'hello', asset: m.asset, ticks: m.ring.since(Date.now() - 60_000).map((t) => [t.ts, String(t.px)]), quotes: m.quotes }));
+          for (const t of o.perpl.latest(20, only).reverse()) res.write(line({ ...t, backfill: true }, 'perpl'));
           const backfill = () => { for (const a of o.activity.latest(30, only).reverse()) res.write(line({ ...a, backfill: true }, 'activity')); };
           if (waiting) waiting.set(res, backfill); else backfill();
           clients.set(res, only);
