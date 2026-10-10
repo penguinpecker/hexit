@@ -21,15 +21,17 @@ export interface FeedConfig {
 
 // BTC/USD and MON/USD (owner, 2026-10-10). Venues, spread and staleness from the 2026-10-10 replay of a live capture:
 // MON's books are wider (Gate 12 bps median) and its quiet venues go silent for over 1 s; at 20 bps / 2 s neither index
-// had a gap over 250 ms. Binance never quotes MON, so MON has 5 venues and BTC 6; 3 is the quorum for both.
+// had a gap over 250 ms. Perpl joined the median the same day (owner): alone it paused over 2 s and its BTC book sat
+// still for a minute, so it is one venue among the exchanges. Binance never quotes MON, so MON has 6 venues and BTC 7;
+// the floor makes the quorum 4 (2 live minutes at 4: no gap on either, Perpl inside 99 % of ticks).
 export const DEFAULTS: FeedConfig = {
   assets: ['BTC', 'MON'],
-  venues: ['binance', 'okx', 'bybit', 'coinbase', 'kraken', 'gate'],
+  venues: ['binance', 'okx', 'bybit', 'coinbase', 'kraken', 'gate', 'perpl'],
   staleMs: 2000,
   maxQuoteAgeMs: 60_000,
   maxSpreadBps: 20,
   outlierBps: 15,
-  minVenues: 3,
+  minVenues: 4,
   usdt: { windowMs: 60_000, min: '0.98', max: '1.02' },
   gapMs: 250,
   maxTickAgeMs: 2500,

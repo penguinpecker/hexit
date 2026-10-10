@@ -27,7 +27,7 @@ The full high-level architecture (the life of a tap, settlement, prices and odds
 
 ```mermaid
 flowchart LR
-  EX["Exchanges<br/>Binance, OKX, Bybit,<br/>Coinbase, Kraken, Gate"]
+  EX["Exchanges + Perpl<br/>Binance, OKX, Bybit, Coinbase,<br/>Kraken, Gate, Perpl (Monad)"]
 
   subgraph VERCEL["Vercel: web"]
     APP["Web app<br/>board, popups, feed"]
@@ -164,11 +164,11 @@ hexit/
 Step by step through the diagram in "Architecture":
 
 1. **Price index.**
-   - The server listens to six exchanges and takes the median of their fresh prices every 100 ms.
+   - The server listens to six exchanges plus Perpl (an order-book exchange on Monad, read over its public market-data API) and takes the median of their fresh prices every 100 ms.
    - Before the median, it drops crossed or wide order books and outliers.
-   - Each market needs fresh prices from at least 3 venues. Without that, there is no tick, which leaves a hole in the tape.
+   - Each market needs fresh prices from at least 4 venues. Without that, there is no tick, which leaves a hole in the tape.
    - Prices quoted in USDT are converted to USD with the Coinbase and Kraken USDT/USD rate.
-   - Binance does not list MON, so MON uses five venues and BTC uses six.
+   - Binance does not list MON, so MON uses six venues and BTC uses seven.
 2. **Quotes.** The quoter prices the 18 columns on the board every 250 ms and signs them. The app shows these multipliers.
 3. **Bets.**
    - The app signs an EIP-712 Bet and sends it to the relayer with the quote.

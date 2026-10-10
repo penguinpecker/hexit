@@ -1,7 +1,7 @@
 // Public, keyless exchange websockets (best bid/offer). Endpoints and channels verified live 2026-10-06; Gate and the
 // MON symbols on all six 2026-10-10 (Binance has no MON spot market: it accepts the MON stream and never quotes it).
 // Each connection also subscribes to BTC as a liveness canary, and USD venues
-// subscribe to USDT for the USDT/USD leg.
+// subscribe to USDT for the USDT/USD leg. Perpl (end of the table) joined the median on 2026-10-10.
 import type { FeedEvent } from './index.ts';
 
 export interface Venue {
@@ -72,7 +72,47 @@ export const VENUES: Record<string, Venue> = {
       ? [[m.result.s, m.result.b, m.result.a, m.result.t]] : []),
     sym: (s) => `${s}_USDT`,
   },
+  perpl: perplVenue(),
 };
+
+/** Perpl, the on-chain perp exchange on Monad (owner, 2026-10-10: "just use their apis"): its mainnet order books over
+ *  the public market-data websocket (no key; 10 requests/min and 16 subscriptions per connection, so one subscribe frame
+ *  and no app pings). Market ids and price decimals read live 2026-10-10 from https://app.perpl.xyz/api/v1/pub/context.
+ *  The book is kept from snapshots (mt 15) and updates (mt 16, a level with o 0 is gone). It can sit unchanged for
+ *  10-25 s, so every block heartbeat (mt 100, ~0.3 s) re-sends the best bid/ask: the book is current as of that block. */
+function perplVenue(): Venue {
+  const MKT: Record<string, { id: number; dp: number }> = { BTC: { id: 1, dp: 1 }, MON: { id: 10, dp: 6 } };
+  const byId = new Map(Object.entries(MKT).map(([s, m]) => [String(m.id), { ...m, s }]));
+  const sids = new Map<number, string>(), books = new Map<string, { bid: Map<number, number>; ask: Map<number, number> }>();
+  const dec = (p: number, dp: number) => { const s = String(p).padStart(dp + 1, '0'); return dp ? `${s.slice(0, -dp)}.${s.slice(-dp)}` : s; };
+  const bbo = (id: string): [string, string, string][] => {
+    const b = books.get(id), dp = byId.get(id)!.dp;
+    if (!b?.bid.size || !b.ask.size) return [];
+    return [[id, dec(Math.max(...b.bid.keys()), dp), dec(Math.min(...b.ask.keys()), dp)]];
+  };
+  return {
+    name: 'perpl', quote: 'USD',   // AUSD collateral, priced in US dollars
+    url: () => 'wss://app.perpl.xyz/ws/v1/market-data',
+    subs: (ids) => [{ mt: 5, subs: ['heartbeat@143', ...ids.filter((id) => byId.has(id)).map((id) => `order-book@${id}`)]
+      .map((stream) => ({ stream, subscribe: true })) }],
+    parse: (m) => {
+      if (m.mt === 6) {   // subscription ids for this connection; a reconnect starts a fresh book from its snapshot
+        for (const x of m.subs ?? []) { const id = /^order-book@(\d+)$/.exec(x.stream)?.[1]; if (id && x.sid != null) sids.set(x.sid, id); }
+        return [];
+      }
+      if (m.mt === 15 || m.mt === 16) {
+        const id = sids.get(m.sid); if (!id) return [];
+        let b = books.get(id);
+        if (!b || m.mt === 15) books.set(id, (b = { bid: new Map(), ask: new Map() }));
+        for (const [side, lv] of [[b.bid, m.bid], [b.ask, m.ask]] as const)
+          for (const l of lv ?? []) (l.o === 0 ? side.delete(l.p) : side.set(l.p, l.s));
+        return bbo(id);
+      }
+      return m.mt === 100 ? [...byId.keys()].flatMap(bbo) : [];
+    },
+    sym: (s) => (MKT[s] ? String(MKT[s].id) : s),
+  };
+}
 
 /** Our symbols a venue must subscribe to for these assets. */
 export function venueSymbols(v: Venue, assets: string[]): string[] {

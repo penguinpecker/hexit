@@ -96,7 +96,7 @@
 
     <h2 id="fairness">Fairness</h2>
     <ul>
-      <li><strong>A signed tape.</strong> The price is an index of several exchanges, recorded every 100 ms. The contract accepts a tape only with the recorder's signature and does the hex geometry itself.</li>
+      <li><strong>A signed tape.</strong> The price is an index of several exchanges plus Perpl's order book on Monad, recorded every 100 ms. The contract accepts a tape only with the recorder's signature and does the hex geometry itself.</li>
       <li><strong>Signed multipliers.</strong> The multiplier on a hex is signed by Hexit's quoter. The contract reads your multiplier from that signed quote, never from the app, and your own signature sets the lowest you accept.</li>
       <li><strong>No stale quotes.</strong> Quotes expire after {{quoteMaxAgeS}} s, and the relayer refuses a tap when the price has moved more than a quarter of a band since its quote.</li>
       <li><strong>The hex you see is the hex that settles.</strong> The board draws the same flat-top hexagon and the same straight segments the contract checks.</li>
