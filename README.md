@@ -27,7 +27,7 @@ The full high-level architecture (the life of a tap, settlement, prices and odds
 
 ```mermaid
 flowchart LR
-  EX["Exchanges + Perpl<br/>Binance, OKX, Bybit, Coinbase,<br/>Kraken, Gate, Perpl (Monad)"]
+  EX["Market data<br/>Perpl on Monad"]
 
   subgraph VERCEL["Vercel: web"]
     APP["Web app<br/>board, popups, feed"]
@@ -35,7 +35,7 @@ flowchart LR
   end
 
   subgraph RAILWAY["Railway: server + Postgres"]
-    INDEX["Price index<br/>tick every 100 ms"]
+    INDEX["Price index<br/>combines its sources,<br/>tick every 100 ms"]
     SIGN["Quoter + recorder<br/>sign off-chain"]
     SSE["SSE /stream"]
     RELAYER["Relayer<br/>POST /bet"]
@@ -119,9 +119,19 @@ hexit/
   - The most a single bet can pay is $2,500.
   - A player can have up to 32 open bets.
 
+## Market data
+
+BTC/USD and MON/USD market data comes from **[Perpl](https://perpl.xyz)**, the on-chain order-book exchange on Monad.
+
+- **Markets:** Perpl's Monad mainnet BTC (market 1) and MON (market 10) order books.
+- **Interface:** Perpl's public market-data WebSocket (`wss://app.perpl.xyz/ws/v1/market-data`): one subscription for the two order books and the block heartbeat. No API key is needed.
+- **What is used:** the best bid and ask. The server keeps each book from Perpl's snapshots and updates, and re-reads the best bid and ask on every Monad block (about every 0.3 s), so a quiet book still counts as live.
+- **Into the game:** the price index samples it every 100 ms. That 100 ms tape is what the server signs and what the contract settles bets against.
+- **Where to look:** `services/game/src/feed/sources.ts` (the Perpl connection) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), section 5 (how the index combines its sources).
+
 ## Features
 
-- **Two markets on one balance:** BTC/USD and MON/USD.
+- **Two markets on one balance:** BTC/USD and MON/USD, with market data from Perpl on Monad.
   - Each market has its own board, quotes and settlement.
   - Switching market never cancels a bet; bets on the other market keep settling.
 - **Every tap is on chain.** Bets, settlements, grants, deposits and withdrawals are all Monad testnet transactions.
@@ -164,11 +174,10 @@ hexit/
 Step by step through the diagram in "Architecture":
 
 1. **Price index.**
-   - The server listens to six exchanges plus Perpl (an order-book exchange on Monad, read over its public market-data API) and takes the median of their fresh prices every 100 ms.
-   - Before the median, it drops crossed or wide order books and outliers.
-   - Each market needs fresh prices from at least 4 venues. Without that, there is no tick, which leaves a hole in the tape.
-   - Prices quoted in USDT are converted to USD with the Coinbase and Kraken USDT/USD rate.
-   - Binance does not list MON, so MON uses six venues and BTC uses seven.
+   - The server reads Perpl's BTC and MON order books on Monad (see "Market data") and combines its sources into one price every 100 ms.
+   - It drops crossed or wide order books and outliers first.
+   - A moment without enough fresh, agreeing data has no tick, which leaves a hole in the tape. The index never guesses.
+   - How the sources are combined, step by step: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), section 5.
 2. **Quotes.** The quoter prices the 18 columns on the board every 250 ms and signs them. The app shows these multipliers.
 3. **Bets.**
    - The app signs an EIP-712 Bet and sends it to the relayer with the quote.
